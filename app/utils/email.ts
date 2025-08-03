@@ -35,8 +35,8 @@ export async function sendOTPEmail({ email, otp, companyName }: SendOTPEmailPara
 						<p style="margin: 0 0 15px 0; color: #374151; font-size: 16px;">
 							Your verification code is:
 						</p>
-						<div style="background-color: #FEB902; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-							<h1 style="color: #47333B; font-size: 32px; letter-spacing: 8px; margin: 0; font-weight: bold;">${otp}</h1>
+						<div style="background-color: #47333B; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+							<h1 style="color: #ffffff; font-size: 32px; letter-spacing: 8px; margin: 0; font-weight: bold;">${otp}</h1>
 						</div>
 						<p style="margin: 15px 0 0 0; color: #6b7280; font-size: 14px;">
 							This code will expire in 10 minutes.

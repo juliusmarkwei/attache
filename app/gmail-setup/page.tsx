@@ -38,11 +38,9 @@ export default function GmailSetup() {
 	useEffect(() => {
 		const handleAuth = async () => {
 			if (!user) {
-				console.log('🔍 GmailSetup - No user, checking auth...');
 				// Don't redirect to login if we're in the middle of OAuth flow
 				const urlParams = new URLSearchParams(window.location.search);
 				if (urlParams.get('code')) {
-					console.log('🔍 GmailSetup - OAuth callback detected, not redirecting to login');
 					// Try to check auth without redirecting
 					const isAuthenticated = await checkAuth(false);
 					if (!isAuthenticated) {
@@ -56,12 +54,10 @@ export default function GmailSetup() {
 					checkAuth();
 				}
 			} else {
-				console.log('🔍 GmailSetup - User found:', user);
 			}
 
 			// Debug user state
-			console.log('🔍 GmailSetup - User state:', user);
-			console.log('🔍 GmailSetup - User ID:', user?.id);
+
 			userIdRef.current = user?.id || null;
 
 			// Check for auth callback
@@ -87,7 +83,6 @@ export default function GmailSetup() {
 	// Retry authentication if needed
 	useEffect(() => {
 		if (!user && !loading) {
-			console.log('🔍 GmailSetup - No user and not loading, retrying auth...');
 			checkAuth();
 		}
 	}, [user, loading, checkAuth]);
@@ -303,10 +298,6 @@ export default function GmailSetup() {
 	};
 
 	const subscribeToGmail = async (accessToken?: string) => {
-		console.log('🔍 Debug - User object:', user);
-		console.log('🔍 Debug - User ID:', user?.id);
-		console.log('🔍 Debug - Access token:', accessToken ? 'Present' : 'Missing');
-
 		if (!user?.id) {
 			console.log('❌ No user ID available for Gmail subscription');
 			setStatus({
@@ -329,13 +320,6 @@ export default function GmailSetup() {
 				userId: user.id,
 			};
 
-			console.log('🔍 Debug - Request body:', {
-				hasAccessToken: !!requestBody.access_token,
-				hasRefreshToken: !!requestBody.refresh_token,
-				hasUserId: !!requestBody.userId,
-				userId: requestBody.userId,
-			});
-
 			const response = await fetch('/api/gmail/subscribe', {
 				method: 'POST',
 				headers: {
@@ -345,8 +329,6 @@ export default function GmailSetup() {
 			});
 
 			const data = await response.json();
-
-			console.log('🔍 Debug - Response:', data);
 
 			if (data.success) {
 				setStatus({

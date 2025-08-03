@@ -19,17 +19,57 @@ export const generateOTP = mutation({
 
 		const hashedOTP = simpleHash(otp);
 
-		await ctx.db.insert('otp_tokens', {
-			email,
-			otp: hashedOTP,
-			expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
-			createdAt: Date.now(),
-		});
+		console.log(`Generating new OTP for ${email}`);
 
-		// For now, just log the OTP (email sending will be implemented later)
-		console.log(`OTP for ${email}: ${otp}`);
+		// Find existing OTP for this email
+		const existingOTP = await ctx.db
+			.query('otp_tokens')
+			.withIndex('by_email', (q) => q.eq('email', email))
+			.first();
 
+		if (existingOTP) {
+			// UPDATE existing OTP
+			console.log(`Updating existing OTP: ${existingOTP._id}`);
+			await ctx.db.patch(existingOTP._id, {
+				otp: hashedOTP,
+				expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+				createdAt: Date.now(),
+			});
+			console.log(`Updated OTP for ${email}`);
+		} else {
+			// INSERT new OTP
+			console.log(`Creating new OTP for ${email}`);
+			const newOTPId = await ctx.db.insert('otp_tokens', {
+				email,
+				otp: hashedOTP,
+				expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
+				createdAt: Date.now(),
+			});
+			console.log(`Created new OTP: ${newOTPId} for ${email}`);
+		}
+
+		console.log(`OTP value: ${otp}`);
 		return { success: true, message: 'OTP sent to your email' };
+	},
+});
+
+// Cleanup expired OTPs
+export const cleanupExpiredOTPs = mutation({
+	args: {},
+	handler: async (ctx) => {
+		const expiredOTPs = await ctx.db
+			.query('otp_tokens')
+			.withIndex('by_expires', (q) => q.lt('expiresAt', Date.now()))
+			.collect();
+
+		console.log(`Found ${expiredOTPs.length} expired OTPs to cleanup`);
+
+		for (const expiredOTP of expiredOTPs) {
+			await ctx.db.delete(expiredOTP._id);
+		}
+
+		console.log(`Cleaned up ${expiredOTPs.length} expired OTPs`);
+		return { success: true, cleanedCount: expiredOTPs.length };
 	},
 });
 
@@ -59,11 +99,12 @@ export const verifyOTP = mutation({
 	handler: async (ctx, args) => {
 		const { email, otp } = args;
 
-		// Find the OTP record
+		// Find the most recent OTP record
 		const otpRecord = await ctx.db
 			.query('otp_tokens')
 			.withIndex('by_email', (q) => q.eq('email', email))
 			.filter((q) => q.gt(q.field('expiresAt'), Date.now()))
+			.order('desc')
 			.first();
 
 		if (!otpRecord) {
@@ -90,14 +131,15 @@ export const verifyOTP = mutation({
 			throw new Error('User not found. Please register first.');
 		}
 
-		// Update last login
+		// Update user as verified and update last login
 		await ctx.db.patch(user._id, {
+			isVerified: true,
 			updatedAt: Date.now(),
 		});
 
 		// Create session
 		const sessionToken = crypto.randomUUID();
-		const session = await ctx.db.insert('sessions', {
+		await ctx.db.insert('sessions', {
 			userId: user._id,
 			token: sessionToken,
 			expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days

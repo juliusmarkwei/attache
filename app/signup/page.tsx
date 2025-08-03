@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -8,38 +8,41 @@ import AuthLayout from '../components/auth/AuthLayout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
-export default function LoginPage() {
-	const [email, setEmail] = useState('');
+export default function SignupPage() {
+	const [registerData, setRegisterData] = useState({
+		name: '',
+		email: '',
+	});
 	const [loading, setLoading] = useState(false);
 	const router = useRouter();
 
-	const handleLogin = async (e: React.FormEvent) => {
+	const handleRegister = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setLoading(true);
 		try {
-			const response = await fetch('/api/auth/otp', {
+			const response = await fetch('/api/auth/register', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ email }),
+				body: JSON.stringify(registerData),
 			});
 
 			const data = await response.json();
 
 			if (response.ok) {
-				toast.success('OTP sent successfully!', {
-					description: 'Check your email for the verification code.',
+				toast.success('Account created successfully!', {
+					description: 'Please check your email for the verification code.',
 				});
 				// Store email in sessionStorage for verification page
-				sessionStorage.setItem('pendingVerificationEmail', email);
+				sessionStorage.setItem('pendingVerificationEmail', registerData.email);
 				// Redirect to OTP verification page
 				router.push('/verify');
 			} else {
-				toast.error(data.error || 'Failed to send OTP');
+				toast.error(data.error || 'Registration failed');
 			}
 		} catch (error) {
-			console.error('Login error:', error);
+			console.error('Registration error:', error);
 			toast.error('Network error. Please try again.');
 		} finally {
 			setLoading(false);
@@ -47,16 +50,38 @@ export default function LoginPage() {
 	};
 
 	return (
-		<AuthLayout title="Sign In" subtitle="Welcome back! Please sign in to your account">
+		<AuthLayout title="Sign Up" subtitle="Create your account to manage companies and documents">
 			<div className="space-y-6">
-				<form onSubmit={handleLogin} className="space-y-4">
+				<form onSubmit={handleRegister} className="space-y-4">
+					<div className="relative">
+						<User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+						<Input
+							type="text"
+							placeholder="Name"
+							value={registerData.name}
+							onChange={(e) =>
+								setRegisterData({
+									...registerData,
+									name: e.target.value,
+								})
+							}
+							required
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
+						/>
+					</div>
+
 					<div className="relative">
 						<Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
 						<Input
 							type="email"
 							placeholder="Email Address"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
+							value={registerData.email}
+							onChange={(e) =>
+								setRegisterData({
+									...registerData,
+									email: e.target.value,
+								})
+							}
 							required
 							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
 						/>
@@ -70,10 +95,10 @@ export default function LoginPage() {
 						{loading ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Sending OTP...
+								Creating Account...
 							</>
 						) : (
-							'Send OTP'
+							'Sign up'
 						)}
 					</Button>
 
@@ -81,10 +106,10 @@ export default function LoginPage() {
 						<Button
 							type="button"
 							variant="link"
-							onClick={() => router.push('/signup')}
+							onClick={() => router.push('/login')}
 							className="text-[#FFB900] hover:text-[#FFB900]/80"
 						>
-							Don't have an account? Sign up
+							Already have an account? Sign in
 						</Button>
 					</div>
 				</form>

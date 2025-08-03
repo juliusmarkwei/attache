@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 		validateEnvironment();
 
 		const body = await request.json();
-		console.log('📧 Gmail webhook received:', JSON.stringify(body, null, 2));
+		console.log('📧 Gmail webhook received');
 
 		// Handle Gmail push notification from Pub/Sub
 		if (body.message && body.message.data) {
@@ -36,10 +36,7 @@ export async function POST(request: NextRequest) {
 				const decodedData = Buffer.from(body.message.data, 'base64').toString('utf-8');
 				const gmailData = JSON.parse(decodedData);
 
-				console.log('📧 Decoded Gmail data:', gmailData);
-
 				if (gmailData.historyId) {
-					console.log(`🔄 Processing Gmail history: ${gmailData.historyId}`);
 					await processGmailHistory(gmailData.historyId);
 				} else {
 					console.log('⚠️ No historyId found in decoded Gmail data');
@@ -116,7 +113,7 @@ async function processGmailHistory(historyId: string) {
 					refresh_token: integration.refreshToken,
 				});
 
-				// Test if the access token is still valid
+				// Check if the access token is still valid
 				try {
 					await gmail.users.getProfile({ auth: auth, userId: 'me' });
 				} catch (tokenError) {
@@ -175,7 +172,6 @@ async function processGmailHistory(historyId: string) {
 
 						const messages = messagesResponse.data.messages;
 						if (messages && messages.length > 0) {
-							console.log(`📨 Found ${messages.length} recent messages, processing...`);
 							for (const message of messages) {
 								if (message.id) {
 									await processEmail(message.id, integration.userId);
@@ -190,11 +186,8 @@ async function processGmailHistory(historyId: string) {
 					return;
 				}
 
-				console.log(`📋 Processing ${history.length} history changes`);
-
 				for (const change of history) {
 					if (change.messagesAdded) {
-						console.log(`📨 Processing ${change.messagesAdded.length} new messages`);
 						for (const messageAdded of change.messagesAdded) {
 							if (messageAdded.message?.id) {
 								await processEmail(messageAdded.message.id, integration.userId);

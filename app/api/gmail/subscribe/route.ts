@@ -67,8 +67,8 @@ export async function POST(request: NextRequest) {
 
 		const gmail = google.gmail({ version: 'v1', auth });
 
-		// Test Gmail API access first
-		console.log('📧 Testing Gmail API access...');
+		// Verify Gmail API access first
+		console.log('📧 Verifying Gmail API access...');
 
 		try {
 			const profile = await gmail.users.getProfile({ userId: 'me' });
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 						expiryDate: credentials.expiry_date || Date.now() + 3600000,
 					});
 
-					// Test again with new token
+					// Verify again with new token
 					const profile = await gmail.users.getProfile({ userId: 'me' });
 					console.log(`✅ Connected to Gmail account: ${profile.data.emailAddress}`);
 				} catch (refreshError) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface OtpInputProps {
 	value: string;
@@ -9,35 +9,58 @@ interface OtpInputProps {
 }
 
 export function OtpInput({ value, onChange, length = 6 }: OtpInputProps) {
-	const inputRef = useRef<HTMLInputElement>(null);
+	const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		let inputValue = e.target.value;
+	// Initialize refs array
+	useEffect(() => {
+		inputRefs.current = inputRefs.current.slice(0, length);
+	}, [length]);
 
+	const handleChange = (index: number, inputValue: string) => {
 		// Only allow digits
-		inputValue = inputValue.replace(/\D/g, '');
+		const digit = inputValue.replace(/\D/g, '').slice(0, 1);
 
-		// Limit to the specified length
-		inputValue = inputValue.slice(0, length);
+		if (digit) {
+			// Update the value at the current index
+			const newValue = value.split('');
+			newValue[index] = digit;
+			const result = newValue.join('');
+			onChange(result);
 
-		onChange(inputValue);
+			// Move to next input if available
+			if (index < length - 1) {
+				inputRefs.current[index + 1]?.focus();
+			}
+		}
 	};
 
-	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-		// Allow: backspace, delete, tab, escape, enter
-		if (
-			[8, 9, 27, 13].indexOf(e.keyCode) !== -1 ||
-			// Allow Ctrl+A
-			(e.keyCode === 65 && e.ctrlKey === true) ||
-			// Allow Ctrl+C
-			(e.keyCode === 67 && e.ctrlKey === true) ||
-			// Allow Ctrl+V
-			(e.keyCode === 86 && e.ctrlKey === true) ||
-			// Allow Ctrl+X
-			(e.keyCode === 88 && e.ctrlKey === true) ||
-			// Allow home, end, left, right
-			(e.keyCode >= 35 && e.keyCode <= 39)
-		) {
+	const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+		// Handle backspace
+		if (e.key === 'Backspace') {
+			if (value[index]) {
+				// Clear current digit
+				const newValue = value.split('');
+				newValue[index] = '';
+				onChange(newValue.join(''));
+			} else if (index > 0) {
+				// Move to previous input and clear it
+				const newValue = value.split('');
+				newValue[index - 1] = '';
+				onChange(newValue.join(''));
+				inputRefs.current[index - 1]?.focus();
+			}
+		}
+
+		// Handle arrow keys
+		if (e.key === 'ArrowLeft' && index > 0) {
+			inputRefs.current[index - 1]?.focus();
+		}
+		if (e.key === 'ArrowRight' && index < length - 1) {
+			inputRefs.current[index + 1]?.focus();
+		}
+
+		// Allow: tab, escape, enter
+		if ([9, 27, 13].indexOf(e.keyCode) !== -1) {
 			return;
 		}
 
@@ -47,21 +70,36 @@ export function OtpInput({ value, onChange, length = 6 }: OtpInputProps) {
 		}
 	};
 
+	const handlePaste = (e: React.ClipboardEvent) => {
+		e.preventDefault();
+		const pastedData = e.clipboardData.getData('text/plain').replace(/\D/g, '').slice(0, length);
+		onChange(pastedData);
+
+		// Focus the next empty input or the last input
+		const nextIndex = Math.min(pastedData.length, length - 1);
+		inputRefs.current[nextIndex]?.focus();
+	};
+
 	return (
-		<div className="flex justify-center">
-			<input
-				ref={inputRef}
-				type="text"
-				inputMode="numeric"
-				pattern="[0-9]*"
-				maxLength={length}
-				value={value}
-				onChange={handleChange}
-				onKeyDown={handleKeyDown}
-				className="w-80 h-14 text-center text-lg font-semibold border-2 border-[#876F53] rounded-lg focus:border-[#FFB900] focus:outline-none focus:ring-2 focus:ring-[#FFB900] bg-white/10 text-white transition-colors tracking-widest"
-				placeholder="Enter 6-digit code"
-				style={{ letterSpacing: '0.5em' }}
-			/>
+		<div className="flex justify-center gap-3">
+			{Array.from({ length }, (_, index) => (
+				<input
+					key={index}
+					ref={(el) => {
+						inputRefs.current[index] = el;
+					}}
+					type="text"
+					inputMode="numeric"
+					pattern="[0-9]*"
+					maxLength={1}
+					value={value[index] || ''}
+					onChange={(e) => handleChange(index, e.target.value)}
+					onKeyDown={(e) => handleKeyDown(index, e)}
+					onPaste={handlePaste}
+					className="w-12 h-12 text-center text-lg font-semibold border-2 border-[#876F53] rounded-lg focus:border-[#FFB900] focus:outline-none focus:ring-2 focus:ring-[#FFB900] bg-white/10 text-white transition-colors"
+					placeholder=""
+				/>
+			))}
 		</div>
 	);
 }

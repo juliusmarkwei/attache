@@ -17,6 +17,12 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
 		}
 
+		// Check if user exists
+		const user = await convex.query(api.auth.getUserByEmail, { email });
+		if (!user) {
+			return NextResponse.json({ error: 'User with this email not found' }, { status: 404 });
+		}
+
 		// Generate OTP locally for email sending
 		const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -25,8 +31,6 @@ export async function POST(request: NextRequest) {
 			email,
 			otp,
 		});
-
-		console.log('Generated OTP:', otp); // Debug log
 
 		// Send OTP email
 		await sendOTPEmail({ email, otp });
