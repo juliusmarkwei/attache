@@ -1,7 +1,9 @@
 'use client';
 
 import { Bell, Building2, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { useNotifications } from '../../hooks/useNotifications';
 import { Button } from '../ui/button';
 import Sidebar from './Sidebar';
 
@@ -15,25 +17,27 @@ interface DashboardLayoutProps {
 		email: string;
 		profilePicture?: string;
 	} | null;
-	notifications?: Array<{
-		id: string;
-		title: string;
-		message: string;
-		timestamp: Date;
-		type: 'email' | 'document' | 'system';
-	}>;
 }
 
-export default function DashboardLayout({
-	children,
-	onLogout,
-	gmailIntegration,
-	user,
-	notifications = [],
-}: DashboardLayoutProps) {
+export default function DashboardLayout({ children, onLogout, gmailIntegration, user }: DashboardLayoutProps) {
+	const router = useRouter();
+	const { notifications, clearNotifications } = useNotifications(user?.id);
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 	const [showNotifications, setShowNotifications] = useState(false);
+
+	const handleNotificationClick = async (notification: any) => {
+		// Navigate to documents page
+		router.push('/dashboard/documents');
+
+		// Clear all notifications for this user
+		if (user?.id) {
+			await clearNotifications(user.id);
+		}
+
+		// Close notification dropdown
+		setShowNotifications(false);
+	};
 
 	return (
 		<div className="flex min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
@@ -114,6 +118,7 @@ export default function DashboardLayout({
 												{notifications.slice(0, 10).map((notification) => (
 													<div
 														key={notification.id}
+														onClick={() => handleNotificationClick(notification)}
 														className="p-3 bg-slate-700/50 rounded-lg hover:bg-slate-600/50 transition-colors cursor-pointer mb-2"
 													>
 														<div className="flex items-start space-x-3">

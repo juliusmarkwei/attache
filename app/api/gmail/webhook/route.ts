@@ -2,6 +2,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { google } from 'googleapis';
 import { NextRequest, NextResponse } from 'next/server';
 import { api } from '../../../../convex/_generated/api';
+import { NotificationService } from '../../../services/notificationService';
 
 // Gmail API setup
 const gmail = google.gmail('v1');
@@ -298,6 +299,16 @@ async function processEmail(messageId: string, userId?: string) {
 			return;
 		}
 
+		// Add notification for new email
+		if (userId) {
+			try {
+				await NotificationService.addEmailNotification(userId, subject, company.name);
+				console.log(`🔔 Email notification added for user: ${userId}`);
+			} catch (error) {
+				console.error('❌ Error adding email notification:', error);
+			}
+		}
+
 		// Process attachments
 		await processAttachments(message, company._id, cleanEmail, userId);
 
@@ -414,7 +425,7 @@ async function processAttachments(message: any, companyId: string, uploadedBy: s
 
 		for (const part of parts) {
 			if (part.filename && part.body?.attachmentId) {
-				await processAttachment(part, companyId, uploadedBy, message.id);
+				await processAttachment(part, companyId, uploadedBy, message.id, userId);
 				attachmentCount++;
 			}
 
@@ -422,7 +433,7 @@ async function processAttachments(message: any, companyId: string, uploadedBy: s
 			if (part.parts) {
 				for (const subPart of part.parts) {
 					if (subPart.filename && subPart.body?.attachmentId) {
-						await processAttachment(subPart, companyId, uploadedBy, message.id);
+						await processAttachment(subPart, companyId, uploadedBy, message.id, userId);
 						attachmentCount++;
 					}
 				}
@@ -439,7 +450,7 @@ async function processAttachments(message: any, companyId: string, uploadedBy: s
 	}
 }
 
-async function processAttachment(part: any, companyId: string, uploadedBy: string, messageId: string) {
+async function processAttachment(part: any, companyId: string, uploadedBy: string, messageId: string, userId?: string) {
 	try {
 		console.log(`📄 Processing attachment: ${part.filename} (${part.mimeType})`);
 
@@ -500,6 +511,24 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 		});
 
 		console.log(`✅ Document added to database: ${documentId}`);
+
+		// Add notification for processed document
+		if (userId) {
+			try {
+				// Get company name for notification
+				const company = await convexClient.query(api.companies.getCompanyById, {
+					companyId: companyId as any,
+				});
+
+				if (company) {
+					await NotificationService.addDocumentNotification(userId, part.filename, company.name);
+					console.log(`🔔 Document notification added for user: ${userId}`);
+				}
+			} catch (error) {
+				console.error('❌ Error adding document notification:', error);
+			}
+		}
+
 		console.log(`📄 Successfully processed: ${part.filename}`);
 	} catch (error) {
 		console.error(`❌ Error processing attachment ${part.filename}:`, error);

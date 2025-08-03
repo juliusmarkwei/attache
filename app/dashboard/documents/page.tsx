@@ -256,19 +256,8 @@ export default function DocumentsPage() {
 		);
 	}
 
-	// Sample notifications for testing
-	const sampleNotifications = [
-		{
-			id: '1',
-			title: 'Document Processed',
-			message: 'fullstack_technical_interview_question.pdf has been processed',
-			timestamp: new Date(),
-			type: 'document' as const,
-		},
-	];
-
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user} notifications={sampleNotifications}>
+		<DashboardLayout onLogout={handleLogout} user={user}>
 			<div className="space-y-6">
 				{/* Header */}
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -39,6 +39,17 @@ export default defineSchema({
 		.index('by_company', ['companyId'])
 		.index('by_uploaded_at', ['uploadedAt']),
 
+	notifications: defineTable({
+		title: v.string(),
+		message: v.string(),
+		type: v.union(v.literal('email'), v.literal('document'), v.literal('system')),
+		userId: v.id('users'),
+		isRead: v.boolean(),
+		createdAt: v.number(),
+	})
+		.index('by_user', ['userId'])
+		.index('by_created_at', ['createdAt']),
+
 	sessions: defineTable({
 		userId: v.id('users'),
 		token: v.string(),

@@ -94,19 +94,8 @@ export default function SettingsPage() {
 		toast.success('Profile picture removed');
 	};
 
-	// Sample notifications for testing
-	const sampleNotifications = [
-		{
-			id: '1',
-			title: 'Profile Updated',
-			message: 'Your profile has been successfully updated',
-			timestamp: new Date(),
-			type: 'system' as const,
-		},
-	];
-
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user} notifications={sampleNotifications}>
+		<DashboardLayout onLogout={handleLogout} user={user}>
 			<div className="space-y-6">
 				{/* Header */}
 				<div>

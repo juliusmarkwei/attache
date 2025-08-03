@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import ConvexProviderWrapper from './components/providers/ConvexProvider';
 import { Toaster } from './components/ui/sonner';
+import { NotificationProvider } from './contexts/NotificationContext';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -20,8 +21,10 @@ export default function RootLayout({
 		<html lang="en">
 			<body className={inter.className}>
 				<ConvexProviderWrapper>
-					{children}
-					<Toaster />
+					<NotificationProvider>
+						{children}
+						<Toaster />
+					</NotificationProvider>
 				</ConvexProviderWrapper>
 			</body>
 		</html>

@@ -73,12 +73,11 @@ export const getAllDocuments = query({
 
 		const companyIds = userCompanies.map((company) => company._id);
 
-		// Then get all documents from those companies
-		const documents = await ctx.db
-			.query('documents')
-			.withIndex('by_company', (q) => q.inArray(q.field('companyId'), companyIds))
-			.order('desc')
-			.collect();
+		// Then get all documents and filter by company IDs
+		const allDocuments = await ctx.db.query('documents').order('desc').collect();
+
+		// Filter documents to only include those from user's companies
+		const documents = allDocuments.filter((doc) => companyIds.includes(doc.companyId));
 
 		return documents;
 	},
@@ -109,12 +108,11 @@ export const getDocumentsWithCompany = query({
 
 		const companyIds = userCompanies.map((company) => company._id);
 
-		// Then get all documents from those companies
-		const documents = await ctx.db
-			.query('documents')
-			.withIndex('by_company', (q) => q.inArray(q.field('companyId'), companyIds))
-			.order('desc')
-			.collect();
+		// Then get all documents and filter by company IDs
+		const allDocuments = await ctx.db.query('documents').order('desc').collect();
+
+		// Filter documents to only include those from user's companies
+		const documents = allDocuments.filter((doc) => companyIds.includes(doc.companyId));
 
 		// Get company information for each document
 		const documentsWithCompany = await Promise.all(

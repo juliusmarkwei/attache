@@ -18,6 +18,8 @@ import type * as companies from "../companies.js";
 import type * as documents from "../documents.js";
 import type * as files from "../files.js";
 import type * as gmail from "../gmail.js";
+import type * as notifications from "../notifications.js";
+import type * as users from "../users.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -33,6 +35,8 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   files: typeof files;
   gmail: typeof gmail;
+  notifications: typeof notifications;
+  users: typeof users;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

@@ -145,31 +145,8 @@ export default function Dashboard() {
 		);
 	}
 
-	// Sample notifications for testing
-	const sampleNotifications = [
-		{
-			id: '1',
-			title: 'New Email Received',
-			message: 'Invoice from Company XYZ has been processed',
-			timestamp: new Date(),
-			type: 'email' as const,
-		},
-		{
-			id: '2',
-			title: 'Document Uploaded',
-			message: 'fullstack_technical_interview_question.pdf added to Digicoast',
-			timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
-			type: 'document' as const,
-		},
-	];
-
 	return (
-		<DashboardLayout
-			onLogout={handleLogout}
-			gmailIntegration={gmailIntegration}
-			user={user}
-			notifications={sampleNotifications}
-		>
+		<DashboardLayout onLogout={handleLogout} gmailIntegration={gmailIntegration} user={user}>
 			<div className="space-y-6">
 				{/* Header */}
 				<div>

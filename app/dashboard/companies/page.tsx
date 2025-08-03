@@ -105,19 +105,8 @@ export default function CompaniesPage() {
 		);
 	}
 
-	// Sample notifications for testing
-	const sampleNotifications = [
-		{
-			id: '1',
-			title: 'New Company Added',
-			message: 'Digicoast has been added to your companies',
-			timestamp: new Date(),
-			type: 'system' as const,
-		},
-	];
-
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user} notifications={sampleNotifications}>
+		<DashboardLayout onLogout={handleLogout} user={user}>
 			<div className="space-y-6">
 				{/* Header */}
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
