@@ -1,0 +1,49 @@
+{
+  "name": "attache",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.28.1",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/nodemailer": "^6.4.17",
+    "bcryptjs": "^3.0.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "convex": "^1.25.4",
+    "country-flag-icons": "^1.5.19",
+    "googleapis": "^154.1.0",
+    "lucide-react": "^0.536.0",
+    "next": "15.4.5",
+    "next-themes": "^0.4.6",
+    "nodemailer": "^7.0.5",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-select": "^5.10.2",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.3.1",
+    "zod": "^4.0.14"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4.1.11",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.5",
+    "prettier": "^3.6.2",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^5"
+  }
+}
