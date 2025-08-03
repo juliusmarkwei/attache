@@ -1,8 +1,6 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { v } from 'convex/values';
+import { mutation, query } from './_generated/server';
 
-// Generate upload URL for file
 export const generateUploadUrl = mutation({
 	args: {},
 	handler: async (ctx) => {

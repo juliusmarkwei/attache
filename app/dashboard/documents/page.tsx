@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import DocumentViewer from '../../components/ui/document-viewer';
 import { Input } from '../../components/ui/input';
 
+import { Id } from '../../../convex/_generated/dataModel';
 import { useAuth } from '../../hooks/useAuth';
 
 // Utility function to format file size
@@ -41,8 +42,8 @@ export default function DocumentsPage() {
 		}
 	}, [authChecked, checkAuth]);
 
-	const documents = useQuery(api.documents.getAllDocuments, user?.id ? { userId: user.id as any } : 'skip');
-	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as any } : 'skip');
+	const documents = useQuery(api.documents.getAllDocuments, user?.id ? { userId: user.id as Id<'users'> } : 'skip');
+	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as Id<'users'> } : 'skip');
 
 	const [searchTerm, setSearchTerm] = useState('');
 	const [selectedCompany, setSelectedCompany] = useState<string>('all');

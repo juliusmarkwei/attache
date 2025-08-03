@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Lock, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -9,7 +9,10 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
 export default function LoginPage() {
-	const [email, setEmail] = useState('');
+	const [loginData, setLoginData] = useState({
+		email: '',
+		password: '',
+	});
 	const [loading, setLoading] = useState(false);
 	const router = useRouter();
 
@@ -17,26 +20,24 @@ export default function LoginPage() {
 		e.preventDefault();
 		setLoading(true);
 		try {
-			const response = await fetch('/api/auth/otp', {
+			const response = await fetch('/api/auth/login', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ email }),
+				body: JSON.stringify(loginData),
 			});
 
 			const data = await response.json();
 
 			if (response.ok) {
-				toast.success('OTP sent successfully!', {
-					description: 'Check your email for the verification code.',
+				toast.success('Login successful!', {
+					description: 'Welcome back to Attache.',
 				});
-				// Store email in sessionStorage for verification page
-				sessionStorage.setItem('pendingVerificationEmail', email);
-				// Redirect to OTP verification page
-				router.push('/verify');
+				// Redirect to dashboard
+				router.push('/dashboard');
 			} else {
-				toast.error(data.error || 'Failed to send OTP');
+				toast.error(data.error || 'Login failed');
 			}
 		} catch (error) {
 			console.error('Login error:', error);
@@ -45,6 +46,8 @@ export default function LoginPage() {
 			setLoading(false);
 		}
 	};
+
+	const isFormValid = loginData.email.trim() !== '' && loginData.password.trim() !== '';
 
 	return (
 		<AuthLayout title="Sign In" subtitle="Welcome back! Please sign in to your account">
@@ -55,8 +58,30 @@ export default function LoginPage() {
 						<Input
 							type="email"
 							placeholder="Email Address"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
+							value={loginData.email}
+							onChange={(e) =>
+								setLoginData({
+									...loginData,
+									email: e.target.value,
+								})
+							}
+							required
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
+						/>
+					</div>
+
+					<div className="relative">
+						<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+						<Input
+							type="password"
+							placeholder="Password"
+							value={loginData.password}
+							onChange={(e) =>
+								setLoginData({
+									...loginData,
+									password: e.target.value,
+								})
+							}
 							required
 							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
 						/>
@@ -64,28 +89,38 @@ export default function LoginPage() {
 
 					<Button
 						type="submit"
-						className="w-full bg-[#FFB900] hover:bg-[#FFB900]/90 h-12 rounded-lg font-semibold text-[#47333B]"
-						disabled={loading}
+						className="w-full bg-[#FFB900] hover:bg-[#FFB900]/90 h-12 rounded-lg font-semibold text-[#47333B] disabled:opacity-50 disabled:cursor-not-allowed"
+						disabled={loading || !isFormValid}
 					>
 						{loading ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Sending OTP...
+								Signing In...
 							</>
 						) : (
-							'Send OTP'
+							'Sign In'
 						)}
 					</Button>
 
-					<div className="text-center">
+					<div className="text-center space-y-2">
 						<Button
 							type="button"
 							variant="link"
-							onClick={() => router.push('/signup')}
-							className="text-[#FFB900] hover:text-[#FFB900]/80"
+							onClick={() => router.push('/forgot-password')}
+							className="text-[#FFB900] hover:text-[#FFB900]/80 text-sm"
 						>
-							Don't have an account? Sign up
+							Forgot your password?
 						</Button>
+						<div>
+							<Button
+								type="button"
+								variant="link"
+								onClick={() => router.push('/signup')}
+								className="text-[#FFB900] hover:text-[#FFB900]/80"
+							>
+								Don't have an account? Sign up
+							</Button>
+						</div>
 					</div>
 				</form>
 			</div>

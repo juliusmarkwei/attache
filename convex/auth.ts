@@ -1,89 +1,33 @@
+import * as bcrypt from 'bcryptjs';
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
-
-// Simple hash function for OTP (not cryptographically secure, but sufficient for OTP)
-function simpleHash(input: string): string {
-	let hash = 0;
-	for (let i = 0; i < input.length; i++) {
-		const char = input.charCodeAt(i);
-		hash = (hash << 5) - hash + char;
-		hash = hash & hash; // Convert to 32-bit integer
-	}
-	return hash.toString(16);
-}
-
-export const generateOTP = mutation({
-	args: { email: v.string(), otp: v.string() },
-	handler: async (ctx, args) => {
-		const { email, otp } = args;
-
-		const hashedOTP = simpleHash(otp);
-
-		console.log(`Generating new OTP for ${email}`);
-
-		// Find existing OTP for this email
-		const existingOTP = await ctx.db
-			.query('otp_tokens')
-			.withIndex('by_email', (q) => q.eq('email', email))
-			.first();
-
-		if (existingOTP) {
-			// UPDATE existing OTP
-			console.log(`Updating existing OTP: ${existingOTP._id}`);
-			await ctx.db.patch(existingOTP._id, {
-				otp: hashedOTP,
-				expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
-				createdAt: Date.now(),
-			});
-			console.log(`Updated OTP for ${email}`);
-		} else {
-			// INSERT new OTP
-			console.log(`Creating new OTP for ${email}`);
-			const newOTPId = await ctx.db.insert('otp_tokens', {
-				email,
-				otp: hashedOTP,
-				expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
-				createdAt: Date.now(),
-			});
-			console.log(`Created new OTP: ${newOTPId} for ${email}`);
-		}
-
-		console.log(`OTP value: ${otp}`);
-		return { success: true, message: 'OTP sent to your email' };
-	},
-});
-
-// Cleanup expired OTPs
-export const cleanupExpiredOTPs = mutation({
-	args: {},
-	handler: async (ctx) => {
-		const expiredOTPs = await ctx.db
-			.query('otp_tokens')
-			.withIndex('by_expires', (q) => q.lt('expiresAt', Date.now()))
-			.collect();
-
-		console.log(`Found ${expiredOTPs.length} expired OTPs to cleanup`);
-
-		for (const expiredOTP of expiredOTPs) {
-			await ctx.db.delete(expiredOTP._id);
-		}
-
-		console.log(`Cleaned up ${expiredOTPs.length} expired OTPs`);
-		return { success: true, cleanedCount: expiredOTPs.length };
-	},
-});
 
 export const createUser = mutation({
 	args: {
 		name: v.string(),
 		email: v.string(),
+		password: v.string(),
 	},
 	handler: async (ctx, args) => {
-		const { name, email } = args;
+		const { name, email, password } = args;
+
+		// Check if user already exists
+		const existingUser = await ctx.db
+			.query('users')
+			.withIndex('by_email', (q) => q.eq('email', email))
+			.first();
+
+		if (existingUser) {
+			throw new Error('User with this email already exists');
+		}
+
+		const saltRounds = 12;
+		const hashedPassword = await bcrypt.hash(password, saltRounds);
 
 		const userId = await ctx.db.insert('users', {
 			name,
 			email,
+			password: hashedPassword,
 			isVerified: false,
 			createdAt: Date.now(),
 			updatedAt: Date.now(),
@@ -93,51 +37,106 @@ export const createUser = mutation({
 	},
 });
 
-// Verify OTP and create user session
-export const verifyOTP = mutation({
-	args: { email: v.string(), otp: v.string() },
+// Generate email verification token
+export const generateEmailVerificationToken = mutation({
+	args: { email: v.string() },
 	handler: async (ctx, args) => {
-		const { email, otp } = args;
+		const { email } = args;
 
-		// Find the most recent OTP record
-		const otpRecord = await ctx.db
-			.query('otp_tokens')
-			.withIndex('by_email', (q) => q.eq('email', email))
-			.filter((q) => q.gt(q.field('expiresAt'), Date.now()))
-			.order('desc')
-			.first();
-
-		if (!otpRecord) {
-			throw new Error('Invalid or expired OTP');
-		}
-
-		// Compare the provided OTP with the hashed OTP
-		const hashedInputOTP = simpleHash(otp);
-		const isValidOTP = hashedInputOTP === otpRecord.otp;
-		if (!isValidOTP) {
-			throw new Error('Invalid OTP');
-		}
-
-		// Delete the used OTP
-		await ctx.db.delete(otpRecord._id);
-
-		// Find user
+		// Find user by email
 		const user = await ctx.db
 			.query('users')
 			.withIndex('by_email', (q) => q.eq('email', email))
 			.first();
 
 		if (!user) {
-			throw new Error('User not found. Please register first.');
+			throw new Error('User not found');
 		}
 
-		// Update user as verified and update last login
-		await ctx.db.patch(user._id, {
+		const existingTokens = await ctx.db
+			.query('password_reset_tokens')
+			.withIndex('by_user', (q) => q.eq('userId', user._id))
+			.collect();
+
+		for (const token of existingTokens) {
+			await ctx.db.delete(token._id);
+		}
+
+		const verificationToken = crypto.randomUUID();
+		await ctx.db.insert('password_reset_tokens', {
+			userId: user._id,
+			token: verificationToken,
+			expiresAt: Date.now() + 30 * 60 * 1000, // 30 minutes
+			createdAt: Date.now(),
+		});
+
+		return {
+			success: true,
+			verificationToken,
+			user: {
+				id: user._id,
+				name: user.name,
+				email: user.email,
+			},
+		};
+	},
+});
+
+export const verifyEmail = mutation({
+	args: { token: v.string() },
+	handler: async (ctx, args) => {
+		const { token } = args;
+
+		const verificationToken = await ctx.db
+			.query('password_reset_tokens')
+			.withIndex('by_token', (q) => q.eq('token', token))
+			.filter((q) => q.gt(q.field('expiresAt'), Date.now()))
+			.first();
+
+		if (!verificationToken) {
+			throw new Error('Invalid or expired verification token');
+		}
+
+		await ctx.db.patch(verificationToken.userId, {
 			isVerified: true,
 			updatedAt: Date.now(),
 		});
 
-		// Create session
+		await ctx.db.delete(verificationToken._id);
+
+		return { success: true };
+	},
+});
+
+export const loginUser = mutation({
+	args: { email: v.string(), password: v.string() },
+	handler: async (ctx, args) => {
+		const { email, password } = args;
+
+		const user = await ctx.db
+			.query('users')
+			.withIndex('by_email', (q) => q.eq('email', email))
+			.first();
+
+		if (!user) {
+			throw new Error('User not found');
+		}
+
+		// Check if user is verified
+		if (!user.isVerified) {
+			throw new Error('Please verify your email before signing in');
+		}
+
+		// Verify password using bcryptjs (production-ready)
+		const isValidPassword = await bcrypt.compare(password, user.password);
+		if (!isValidPassword) {
+			throw new Error('Invalid password');
+		}
+
+		await ctx.db.patch(user._id, {
+			updatedAt: Date.now(),
+		});
+
 		const sessionToken = crypto.randomUUID();
 		await ctx.db.insert('sessions', {
 			userId: user._id,
@@ -155,6 +154,103 @@ export const verifyOTP = mutation({
 				email: user.email,
 			},
 		};
+	},
+});
+
+export const forgotPassword = mutation({
+	args: { email: v.string() },
+	handler: async (ctx, args) => {
+		const { email } = args;
+
+		// Find user by email
+		const user = await ctx.db
+			.query('users')
+			.withIndex('by_email', (q) => q.eq('email', email))
+			.first();
+
+		if (!user) {
+			throw new Error('User not found');
+		}
+
+		const existingTokens = await ctx.db
+			.query('password_reset_tokens')
+			.withIndex('by_user', (q) => q.eq('userId', user._id))
+			.collect();
+
+		for (const token of existingTokens) {
+			await ctx.db.delete(token._id);
+		}
+
+		const resetToken = crypto.randomUUID();
+		await ctx.db.insert('password_reset_tokens', {
+			userId: user._id,
+			token: resetToken,
+			expiresAt: Date.now() + 30 * 60 * 1000, // 30 minutes
+			createdAt: Date.now(),
+		});
+
+		return {
+			success: true,
+			resetToken,
+			user: {
+				id: user._id,
+				name: user.name,
+				email: user.email,
+			},
+		};
+	},
+});
+
+export const resetPassword = mutation({
+	args: { token: v.string(), newPassword: v.string() },
+	handler: async (ctx, args) => {
+		const { token, newPassword } = args;
+
+		const resetToken = await ctx.db
+			.query('password_reset_tokens')
+			.withIndex('by_token', (q) => q.eq('token', token))
+			.filter((q) => q.gt(q.field('expiresAt'), Date.now()))
+			.first();
+
+		if (!resetToken) {
+			throw new Error('Invalid or expired reset token');
+		}
+
+		const saltRounds = 12;
+		const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+		await ctx.db.patch(resetToken.userId, {
+			password: hashedPassword,
+			updatedAt: Date.now(),
+		});
+
+		await ctx.db.delete(resetToken._id);
+
+		const userSessions = await ctx.db
+			.query('sessions')
+			.withIndex('by_user', (q) => q.eq('userId', resetToken.userId))
+			.collect();
+
+		for (const session of userSessions) {
+			await ctx.db.delete(session._id);
+		}
+
+		return { success: true };
+	},
+});
+
+export const verifyResetToken = query({
+	args: { token: v.string() },
+	handler: async (ctx, args) => {
+		const { token } = args;
+
+		const resetToken = await ctx.db
+			.query('password_reset_tokens')
+			.withIndex('by_token', (q) => q.eq('token', token))
+			.filter((q) => q.gt(q.field('expiresAt'), Date.now()))
+			.first();
+
+		return resetToken ? { valid: true } : { valid: false };
 	},
 });
 
@@ -182,14 +278,26 @@ export const getCurrentUser = query({
 	},
 });
 
-export const getUserByEmail = query({
-	args: { email: v.string() },
+// Get user info by verification token
+export const getUserByVerificationToken = query({
+	args: { token: v.string() },
 	handler: async (ctx, args) => {
-		const { email } = args;
-		return await ctx.db
-			.query('users')
-			.withIndex('by_email', (q) => q.eq('email', email))
+		const { token } = args;
+
+		// Find the verification token
+		const verificationToken = await ctx.db
+			.query('password_reset_tokens')
+			.withIndex('by_token', (q) => q.eq('token', token))
+			.filter((q) => q.gt(q.field('expiresAt'), Date.now()))
 			.first();
+
+		if (!verificationToken) {
+			return null;
+		}
+
+		// Get user info
+		const user = await ctx.db.get(verificationToken.userId);
+		return user;
 	},
 });
 
@@ -212,19 +320,35 @@ export const logout = mutation({
 	},
 });
 
-// Get OTP for email (for email sending)
-export const getOTPForEmail = query({
-	args: { email: v.string() },
-	handler: async (ctx, args) => {
-		const { email } = args;
+// Cleanup expired tokens
+export const cleanupExpiredTokens = mutation({
+	handler: async (ctx) => {
+		const now = Date.now();
 
-		const otpRecord = await ctx.db
-			.query('otp_tokens')
-			.withIndex('by_email', (q) => q.eq('email', email))
-			.filter((q) => q.gt(q.field('expiresAt'), Date.now()))
-			.order('desc')
-			.first();
+		// Cleanup expired password reset tokens
+		const expiredResetTokens = await ctx.db
+			.query('password_reset_tokens')
+			.withIndex('by_expires', (q) => q.lt('expiresAt', now))
+			.collect();
 
-		return otpRecord;
+		for (const token of expiredResetTokens) {
+			await ctx.db.delete(token._id);
+		}
+
+		// Cleanup expired sessions
+		const expiredSessions = await ctx.db
+			.query('sessions')
+			.filter((q) => q.lt(q.field('expiresAt'), now))
+			.collect();
+
+		for (const session of expiredSessions) {
+			await ctx.db.delete(session._id);
+		}
+
+		return {
+			success: true,
+			deletedResetTokens: expiredResetTokens.length,
+			deletedSessions: expiredSessions.length,
+		};
 	},
 });

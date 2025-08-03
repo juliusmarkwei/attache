@@ -5,6 +5,7 @@ export default defineSchema({
 	users: defineTable({
 		name: v.string(),
 		email: v.string(),
+		password: v.string(),
 		profilePicture: v.optional(v.string()),
 		isVerified: v.boolean(),
 		createdAt: v.number(),
@@ -59,13 +60,14 @@ export default defineSchema({
 		.index('by_token', ['token'])
 		.index('by_user', ['userId']),
 
-	otp_tokens: defineTable({
-		email: v.string(),
-		otp: v.string(),
+	password_reset_tokens: defineTable({
+		userId: v.id('users'),
+		token: v.string(),
 		expiresAt: v.number(),
 		createdAt: v.number(),
 	})
-		.index('by_email', ['email'])
+		.index('by_token', ['token'])
+		.index('by_user', ['userId'])
 		.index('by_expires', ['expiresAt']),
 
 	gmail_integrations: defineTable({
