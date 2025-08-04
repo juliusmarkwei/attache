@@ -14,6 +14,18 @@ import { useAuth } from '../hooks/useAuth';
 
 // Simple chart component for statistics
 function SimpleChart({ data, title, color }: { data: number[]; title: string; color: string }) {
+	const getDateLabels = () => {
+		const labels = [];
+		for (let i = 6; i >= 0; i--) {
+			const date = new Date();
+			date.setDate(date.getDate() - i);
+			labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+		}
+		return labels;
+	};
+
+	const dateLabels = getDateLabels();
+
 	return (
 		<div className="space-y-2">
 			<p className="text-xs text-slate-400">{title}</p>
@@ -27,6 +39,14 @@ function SimpleChart({ data, title, color }: { data: number[]; title: string; co
 							backgroundColor: color,
 						}}
 					/>
+				))}
+			</div>
+			{/* Date labels */}
+			<div className="flex justify-between text-xs text-slate-400">
+				{dateLabels.map((label, index) => (
+					<span key={index} className="flex-1 text-center">
+						{label}
+					</span>
 				))}
 			</div>
 		</div>
@@ -58,7 +78,6 @@ export default function Dashboard() {
 	const [showGmailBanner, setShowGmailBanner] = useState(true);
 	const [showActiveBanner, setShowActiveBanner] = useState(true);
 
-	// Check if user has dismissed the banners in this session
 	useEffect(() => {
 		const dismissed = sessionStorage.getItem('gmail_banner_dismissed');
 		const activeDismissed = sessionStorage.getItem('gmail_active_banner_dismissed');
@@ -71,30 +90,24 @@ export default function Dashboard() {
 		}
 	}, []);
 
-	// Reset banner if user gets Gmail integration and then loses it
 	useEffect(() => {
-		// Only run this effect when gmailIntegration is loaded (not undefined)
 		if (gmailIntegration !== undefined) {
 			if (!gmailIntegration || !gmailIntegration.isActive) {
-				// User doesn't have Gmail integration or it's inactive, show banner if not dismissed
 				const dismissed = sessionStorage.getItem('gmail_banner_dismissed');
 				if (dismissed !== 'true') {
 					setShowGmailBanner(true);
 				}
 			} else if (gmailIntegration && gmailIntegration.isActive) {
-				// User has active Gmail integration, hide connect banner
 				setShowGmailBanner(false);
 			}
 		}
 	}, [gmailIntegration]);
 
-	// Handle banner dismissal
 	const handleDismissBanner = () => {
 		setShowGmailBanner(false);
 		sessionStorage.setItem('gmail_banner_dismissed', 'true');
 	};
 
-	// Handle active banner dismissal
 	const handleDismissActiveBanner = () => {
 		setShowActiveBanner(false);
 		sessionStorage.setItem('gmail_active_banner_dismissed', 'true');

@@ -87,7 +87,7 @@ export default function LoginPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-gray-300 placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
 						/>
 					</div>
 
@@ -104,7 +104,7 @@ export default function LoginPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-gray-300 placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
 						/>
 						<button
 							type="button"
