@@ -25,14 +25,7 @@ export const metadata: Metadata = {
 		siteName: 'Attache',
 		images: [
 			{
-				url: '/og-image.svg',
-				width: 1200,
-				height: 630,
-				alt: 'Attache - Document Management Platform',
-				type: 'image/svg+xml',
-			},
-			{
-				url: '/og-image.png',
+				url: 'https://attache-one.vercel.app/og-image.png',
 				width: 1200,
 				height: 630,
 				alt: 'Attache - Document Management Platform',
@@ -45,7 +38,7 @@ export const metadata: Metadata = {
 		title: 'Attache - Document Management Platform',
 		description:
 			'Manage company documents with email integration. Automatically process emails and organize documents by company.',
-		images: ['/og-image.svg', '/og-image.png'],
+		images: ['https://attache-one.vercel.app/og-image.png'],
 		creator: '@attache_app',
 		site: '@attache_app',
 	},
@@ -77,6 +70,10 @@ export const metadata: Metadata = {
 	other: {
 		'msapplication-TileColor': '#FFB900',
 		'theme-color': '#FFB900',
+		'og:image:width': '1200',
+		'og:image:height': '630',
+		'og:image:type': 'image/png',
+		'og:image:alt': 'Attache - Document Management Platform',
 	},
 };
 

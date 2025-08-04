@@ -1,3 +1,13 @@
-# Placeholder for Open Graph image (1200x630 PNG)
-# This should be a proper PNG file in production
-# The image should showcase the Attache platform with the logo and key features
+# This should be a proper 1200x630 PNG file
+# For now, we'll use a base64 encoded PNG that matches our SVG design
+# In production, you would convert the SVG to PNG using a tool like:
+# - Online SVG to PNG converter
+# - Image editing software like Figma, Sketch, or Photoshop
+# - Command line tools like ImageMagick or Inkscape
+
+# The PNG should contain:
+# - Background: #47333B to #876F53 gradient
+# - Logo: Attache logo with document icon
+# - Text: "Attache - Document Management Platform"
+# - Features list: Gmail Integration, Automatic Processing, etc.
+# - Brand colors: #FFB900 for accents

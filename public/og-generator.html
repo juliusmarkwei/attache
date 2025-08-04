@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attache OG Image Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 1200px;
+            height: 630px;
+            background: linear-gradient(135deg, #47333B 0%, #876F53 100%);
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            gap: 60px;
+            padding: 40px;
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            background: #FFB900;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .document-icon {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .document-icon::before {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            right: 8px;
+            height: 4px;
+            background: #FFB900;
+            border-radius: 2px;
+        }
+
+        .document-icon::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 8px;
+            right: 8px;
+            height: 4px;
+            background: #FFB900;
+            border-radius: 2px;
+        }
+
+        .content {
+            color: white;
+            max-width: 600px;
+        }
+
+        .title {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 24px;
+            color: #FFB900;
+            margin-bottom: 30px;
+        }
+
+        .features {
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .feature {
+            margin-bottom: 8px;
+        }
+
+        .decorative {
+            position: absolute;
+            opacity: 0.1;
+        }
+
+        .circle1 {
+            top: 100px;
+            right: 200px;
+            width: 100px;
+            height: 100px;
+            background: #FFB900;
+            border-radius: 50%;
+        }
+
+        .circle2 {
+            bottom: 150px;
+            right: 100px;
+            width: 60px;
+            height: 60px;
+            background: #FFB900;
+            border-radius: 50%;
+        }
+
+        .circle3 {
+            top: 300px;
+            right: 300px;
+            width: 80px;
+            height: 80px;
+            background: #FFB900;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="decorative circle1"></div>
+    <div class="decorative circle2"></div>
+    <div class="decorative circle3"></div>
+
+    <div class="container">
+        <div class="logo">
+            <div class="document-icon"></div>
+        </div>
+
+        <div class="content">
+            <div class="title">Attache</div>
+            <div class="subtitle">Document Management Platform</div>
+            <div class="features">
+                <div class="feature">• Gmail Integration</div>
+                <div class="feature">• Automatic Document Processing</div>
+                <div class="feature">• Company Organization</div>
+                <div class="feature">• Real-time Updates</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
