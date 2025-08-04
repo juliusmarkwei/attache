@@ -62,14 +62,14 @@ export default function ConfirmationModal({
 							variant="outline"
 							onClick={onClose}
 							disabled={isLoading}
-							className="border-slate-600 text-slate-300 hover:bg-slate-700"
+							className="border-slate-600 text-slate-300 hover:bg-slate-600/20 hover:text-slate-200 hover:cursor-pointer"
 						>
 							{cancelText}
 						</Button>
 						<Button
 							onClick={onConfirm}
 							disabled={isLoading}
-							className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+							className="bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 hover:cursor-pointer"
 						>
 							{isLoading ? (
 								<div className="flex items-center space-x-2">

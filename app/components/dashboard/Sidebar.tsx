@@ -218,7 +218,7 @@ export default function Sidebar({
 							onClick={onLogout}
 							variant="outline"
 							size="sm"
-							className={`border-slate-600 text-slate-200 hover:bg-slate-700 h-10 rounded-lg ${
+							className={`border-slate-600 text-slate-200 hover:bg-transparent hover:text-slate-200 hover:cursor-pointer h-10 rounded-lg ${
 								collapsed ? 'w-10 px-0' : 'w-full'
 							}`}
 							title={collapsed ? 'Logout' : undefined}

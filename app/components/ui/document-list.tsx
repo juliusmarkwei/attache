@@ -150,7 +150,7 @@ export default function DocumentList({
 										setSelectedDocument(doc);
 										setSelectedCompany(company || null);
 									}}
-									className="border-slate-600 text-slate-200 hover:bg-slate-700"
+									className="border-slate-600 text-slate-200 hover:bg-transparent hover:text-slate-200 hover:cursor-pointer"
 									title="View document"
 								>
 									<Eye className="h-4 w-4" />
@@ -159,7 +159,7 @@ export default function DocumentList({
 									variant="outline"
 									size="sm"
 									onClick={() => handleDownload(doc)}
-									className="border-slate-600 text-slate-200 hover:bg-slate-700"
+									className="border-slate-600 text-slate-200 hover:bg-transparent hover:text-slate-200 hover:cursor-pointer"
 									title="Download document"
 								>
 									<Download className="h-4 w-4" />
@@ -170,7 +170,7 @@ export default function DocumentList({
 										size="sm"
 										onClick={() => handleDelete(doc._id, doc.originalName)}
 										disabled={deletingDocument === doc._id || deletingDocumentId === doc._id}
-										className="border-red-600 text-red-400 hover:bg-red-600/20 disabled:opacity-50"
+										className="border-red-600 text-red-400 hover:bg-transparent hover:text-red-400 hover:cursor-pointer disabled:opacity-50"
 										title="Delete document"
 									>
 										{deletingDocument === doc._id || deletingDocumentId === doc._id ? (

@@ -1,7 +1,7 @@
 'use client';
 
-import { useQuery } from 'convex/react';
-import { AlertCircle, CheckCircle, ExternalLink, Loader2, Mail } from 'lucide-react';
+import { useMutation, useQuery } from 'convex/react';
+import { AlertCircle, CheckCircle, ExternalLink, Loader2, Mail, PowerOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../convex/_generated/api';
@@ -33,6 +33,7 @@ export default function GmailSetup() {
 		api.gmail.getGmailIntegration,
 		user?.id ? { userId: user.id as Id<'users'> } : 'skip',
 	);
+	const deactivateGmail = useMutation(api.gmail.deactivateGmailIntegration);
 	const [status, setStatus] = useState<AuthStatus>({
 		step: 'initial',
 		message: 'Ready to configure Gmail integration',
@@ -482,6 +483,27 @@ export default function GmailSetup() {
 		}
 	};
 
+	const handleDeactivateGmail = async () => {
+		if (!user?.id) {
+			toast.error('User not authenticated');
+			return;
+		}
+
+		try {
+			await deactivateGmail({ userId: user.id as Id<'users'> });
+			toast.success('Gmail integration deactivated successfully');
+
+			// Update the status to show deactivated state
+			setStatus({
+				step: 'initial',
+				message: 'Gmail integration has been deactivated. You can reconnect anytime.',
+			});
+		} catch (error) {
+			console.error('Deactivation error:', error);
+			toast.error('Failed to deactivate Gmail integration');
+		}
+	};
+
 	const getStepIcon = () => {
 		switch (status.step) {
 			case 'initial':
@@ -602,23 +624,47 @@ export default function GmailSetup() {
 								<div className="space-y-6">
 									<div className="text-center">
 										<h3 className="text-xl font-semibold text-white mb-4">
-											Connect Your Gmail Account
+											{gmailIntegration && gmailIntegration.isActive
+												? 'Manage Your Gmail Integration'
+												: 'Connect Your Gmail Account'}
 										</h3>
 										<p className="text-slate-300 max-w-2xl mx-auto">
-											Grant Attache permission to read your Gmail messages and process
-											attachments. This allows us to automatically organize your emails by
-											company.
+											{gmailIntegration && gmailIntegration.isActive
+												? 'Your Gmail integration is currently active. You can deactivate it to stop processing emails, or reconnect with a different account.'
+												: 'Grant Attache permission to read your Gmail messages and process attachments. This allows us to automatically organize your emails by company.'}
 										</p>
 									</div>
-									<div className="flex justify-center">
-										<Button
-											onClick={startAuth}
-											size="lg"
-											className="px-8 py-4 text-lg bg-[#FFB900] hover:bg-[#FFB900]/90 text-slate-900"
-										>
-											<Mail className="h-5 w-5 mr-3" />
-											Connect Gmail Account
-										</Button>
+									<div className="flex justify-center space-x-4">
+										{gmailIntegration && gmailIntegration.isActive ? (
+											<>
+												<Button
+													onClick={startAuth}
+													size="lg"
+													className="px-8 py-4 text-lg bg-[#FFB900] hover:bg-[#FFB900]/90 text-slate-900"
+												>
+													<Mail className="h-5 w-5 mr-3" />
+													Reconnect Gmail
+												</Button>
+												<Button
+													onClick={handleDeactivateGmail}
+													variant="outline"
+													size="lg"
+													className="px-8 py-4 text-lg border-red-500 text-red-400 hover:bg-red-500/10"
+												>
+													<PowerOff className="h-5 w-5 mr-3" />
+													Deactivate Gmail
+												</Button>
+											</>
+										) : (
+											<Button
+												onClick={startAuth}
+												size="lg"
+												className="px-8 py-4 text-lg bg-[#FFB900] hover:bg-[#FFB900]/90 text-slate-900 hover:cursor-pointer"
+											>
+												<Mail className="h-5 w-5 mr-3" />
+												Connect Gmail Account
+											</Button>
+										)}
 									</div>
 								</div>
 							)}
@@ -639,7 +685,7 @@ export default function GmailSetup() {
 											onClick={() => window.open(status.authUrl, '_blank')}
 											size="lg"
 											variant="outline"
-											className="px-8 py-4 text-lg border-[#FFB900] text-[#FFB900] hover:bg-[#FFB900]/10"
+											className="px-8 py-4 text-lg border-[#FFB900] text-[#FFB900] hover:cursor-pointer hover:bg-transparent hover:text-[#FFB900]"
 										>
 											<ExternalLink className="h-5 w-5 mr-3" />
 											Complete Authorization
@@ -733,7 +779,7 @@ export default function GmailSetup() {
 												});
 											}}
 											size="lg"
-											className="px-8 py-4 text-lg bg-[#FFB900] hover:bg-[#FFB900]/90 text-slate-900"
+											className="px-8 py-4 text-lg bg-[#FFB900] hover:bg-[#FFB900]/90 text-slate-900 hover:cursor-pointer"
 										>
 											{status.error?.includes('re-authenticated')
 												? 'Reconnect Gmail'
@@ -745,7 +791,7 @@ export default function GmailSetup() {
 											}}
 											variant="outline"
 											size="lg"
-											className="px-8 py-4 text-lg"
+											className="px-8 py-4 text-lg border-slate-600 text-slate-200 hover:bg-transparent hover:text-slate-200 hover:cursor-pointer"
 										>
 											Back to Dashboard
 										</Button>
@@ -771,7 +817,7 @@ export default function GmailSetup() {
 											</p>
 										</div>
 									</div>
-									<div className="flex justify-center">
+									<div className="flex justify-center space-x-4">
 										<Button
 											onClick={() => {
 												window.location.href = '/dashboard';
@@ -780,6 +826,15 @@ export default function GmailSetup() {
 											className="px-8 py-4 text-lg bg-[#FFB900] hover:bg-[#FFB900]/90 text-slate-900"
 										>
 											Go to Dashboard
+										</Button>
+										<Button
+											onClick={handleDeactivateGmail}
+											variant="outline"
+											size="lg"
+											className="px-8 py-4 text-lg border-red-500 text-red-400 hover:bg-red-500/10"
+										>
+											<PowerOff className="h-5 w-5 mr-3" />
+											Deactivate Gmail
 										</Button>
 									</div>
 								</div>

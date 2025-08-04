@@ -177,7 +177,7 @@ export default function CompanyDetails() {
 							<Button
 								onClick={() => setIsEditing(true)}
 								variant="outline"
-								className="border-slate-600 text-slate-300 hover:bg-slate-700"
+								className="border-slate-600 text-slate-300 hover:bg-transparent hover:text-slate-300 hover:cursor-pointer"
 							>
 								<Edit className="h-4 w-4 mr-2" />
 								Edit

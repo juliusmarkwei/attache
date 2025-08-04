@@ -472,7 +472,7 @@ export default function DocumentsPage() {
 								size="sm"
 								onClick={() => setCurrentPage(currentPage - 1)}
 								disabled={currentPage === 1}
-								className="border-slate-600 text-slate-200 hover:bg-slate-700"
+								className="border-slate-600 text-slate-200 hover:bg-transparent hover:text-slate-200 hover:cursor-pointer"
 							>
 								<ChevronLeft className="h-4 w-4 mr-1" />
 								Previous
@@ -487,7 +487,7 @@ export default function DocumentsPage() {
 										className={
 											currentPage === page
 												? 'bg-[#FFB900] text-slate-900'
-												: 'border-slate-600 text-slate-200 hover:bg-slate-700'
+												: 'border-slate-600 text-slate-200 hover:bg-transparent hover:text-slate-200 hover:cursor-pointer'
 										}
 									>
 										{page}
@@ -499,7 +499,7 @@ export default function DocumentsPage() {
 								size="sm"
 								onClick={() => setCurrentPage(currentPage + 1)}
 								disabled={currentPage === totalPages}
-								className="border-slate-600 text-slate-200 hover:bg-slate-700"
+								className="border-slate-600 text-slate-200 hover:bg-transparent hover:text-slate-200 hover:cursor-pointer"
 							>
 								Next
 								<ChevronRight className="h-4 w-4 ml-1" />
