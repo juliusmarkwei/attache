@@ -12,6 +12,8 @@ A full-stack document management platform that automatically processes email att
 - **Beautiful UI**: Modern, responsive design with Tailwind CSS
 - **PWA Support**: Progressive Web App with custom app icon
 - **Cross-platform**: Works on desktop, tablet, and mobile devices
+- **Open Graph**: Rich social media sharing with custom images
+- **SEO Optimized**: Comprehensive metadata for search engines
 
 ## 🏗️ Architecture
 
@@ -30,6 +32,8 @@ A full-stack document management platform that automatically processes email att
 - **Lucide Icons**: Beautiful icon library
 - **PWA Support**: Progressive Web App capabilities
 - **Custom App Icon**: Branded icon for all platforms
+- **Open Graph**: Social media sharing optimization
+- **Twitter Cards**: Enhanced Twitter sharing
 
 ## 📋 Prerequisites
 
@@ -172,6 +176,8 @@ attache/
     ├── icon-192.png       # App icon (192x192)
     ├── icon-512.png       # App icon (512x512)
     ├── manifest.json      # PWA manifest
+    ├── og-image.svg       # Open Graph image (SVG)
+    ├── og-image.png       # Open Graph image (PNG)
     └── Sandy_Tech-02_Single-10.jpg  # Background image
 ```
 
@@ -184,6 +190,8 @@ attache/
 - **TypeScript**: Type-safe development
 - **PWA**: Progressive Web App capabilities
 - **SVG Icons**: Scalable vector graphics for crisp display
+- **Open Graph**: Social media sharing optimization
+- **Twitter Cards**: Enhanced social media sharing
 
 ## 🚀 Deployment
 
@@ -207,6 +215,21 @@ The app icon appears in:
 - Browser tabs and bookmarks
 - Mobile home screens (when added)
 - App stores (if published as PWA)
+
+### Social Media Sharing
+
+The application includes comprehensive Open Graph and Twitter Card support:
+
+- **Open Graph**: Rich previews on Facebook, LinkedIn, and other platforms
+- **Twitter Cards**: Enhanced sharing on Twitter with large image previews
+- **Custom Images**: Branded sharing images (1200x630) in SVG and PNG formats
+- **SEO Metadata**: Comprehensive meta tags for search engine optimization
+
+When shared on social media, the application displays:
+
+- Custom branded image with logo and features
+- Descriptive title and description
+- Platform-specific optimizations
 
 ### Environment Variables for Production
 

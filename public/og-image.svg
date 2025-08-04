@@ -1,0 +1,61 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#47333B"/>
+
+  <!-- Gradient overlay -->
+  <rect width="1200" height="630" fill="url(#gradient)"/>
+
+  <!-- Logo area -->
+  <g transform="translate(100, 150)">
+    <!-- Logo background -->
+    <rect x="0" y="0" width="120" height="120" rx="20" fill="#FFB900"/>
+
+    <!-- Document icon -->
+    <path d="M30 30C30 28.8954 30.8954 28 32 28H48L60 40V90C60 91.1046 59.1046 92 58 92H32C30.8954 92 30 91.1046 30 90V30Z" fill="white"/>
+    <path d="M48 28L60 40H52C50.8954 40 50 39.1046 50 38V28H48Z" fill="#E5E5E5"/>
+    <path d="M36 44H54V48H36V44Z" fill="#FFB900"/>
+    <path d="M36 52H50V56H36V52Z" fill="#FFB900"/>
+  </g>
+
+  <!-- Text content -->
+  <g transform="translate(250, 150)">
+    <!-- Main title -->
+    <text x="0" y="60" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white">
+      Attache
+    </text>
+
+    <!-- Subtitle -->
+    <text x="0" y="100" font-family="Arial, sans-serif" font-size="24" fill="#FFB900">
+      Document Management Platform
+    </text>
+
+    <!-- Features -->
+    <text x="0" y="160" font-family="Arial, sans-serif" font-size="18" fill="white">
+      • Gmail Integration
+    </text>
+    <text x="0" y="190" font-family="Arial, sans-serif" font-size="18" fill="white">
+      • Automatic Document Processing
+    </text>
+    <text x="0" y="220" font-family="Arial, sans-serif" font-size="18" fill="white">
+      • Company Organization
+    </text>
+    <text x="0" y="250" font-family="Arial, sans-serif" font-size="18" fill="white">
+      • Real-time Updates
+    </text>
+  </g>
+
+  <!-- Decorative elements -->
+  <g opacity="0.1">
+    <circle cx="1000" cy="100" r="50" fill="#FFB900"/>
+    <circle cx="1100" cy="200" r="30" fill="#FFB900"/>
+    <circle cx="950" cy="300" r="40" fill="#FFB900"/>
+  </g>
+
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#47333B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#876F53;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-
 import { AuthInitializer } from './components/providers/AuthInitializer';
 import ConvexProviderWrapper from './components/providers/ConvexProvider';
 import { Toaster } from './components/ui/sonner';
@@ -11,6 +10,45 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
 	title: 'Attache - Document Management Platform',
 	description: 'Manage company documents with email integration',
+	keywords: ['document management', 'email integration', 'Gmail API', 'file storage', 'company organization'],
+	authors: [{ name: 'Attache Team' }],
+	creator: 'Attache',
+	publisher: 'Attache',
+	robots: 'index, follow',
+	openGraph: {
+		type: 'website',
+		locale: 'en_US',
+		url: 'https://attache-one.vercel.app',
+		title: 'Attache - Document Management Platform',
+		description:
+			'Manage company documents with email integration. Automatically process emails and organize documents by company.',
+		siteName: 'Attache',
+		images: [
+			{
+				url: '/og-image.svg',
+				width: 1200,
+				height: 630,
+				alt: 'Attache - Document Management Platform',
+				type: 'image/svg+xml',
+			},
+			{
+				url: '/og-image.png',
+				width: 1200,
+				height: 630,
+				alt: 'Attache - Document Management Platform',
+				type: 'image/png',
+			},
+		],
+	},
+	twitter: {
+		card: 'summary_large_image',
+		title: 'Attache - Document Management Platform',
+		description:
+			'Manage company documents with email integration. Automatically process emails and organize documents by company.',
+		images: ['/og-image.svg', '/og-image.png'],
+		creator: '@attache_app',
+		site: '@attache_app',
+	},
 	icons: {
 		icon: [
 			{
@@ -36,6 +74,10 @@ export const metadata: Metadata = {
 		],
 	},
 	manifest: '/manifest.json',
+	other: {
+		'msapplication-TileColor': '#FFB900',
+		'theme-color': '#FFB900',
+	},
 };
 
 export default function RootLayout({
