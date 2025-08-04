@@ -4,7 +4,7 @@ A full-stack document management platform that automatically processes email att
 
 ## 🚀 Features
 
-- **Passwordless Authentication**: OTP-based login system
+- **Email & Password Authentication**: Login with email and password
 - **Gmail Integration**: Automatic email processing with webhooks
 - **Document Management**: Store and organize documents by company
 - **Real-time Updates**: Live document and company listings
@@ -118,11 +118,11 @@ The system automatically:
 
 ## 🔐 Authentication
 
-The platform uses a passwordless OTP system:
+The platform uses email and password authentication:
 
 1. **Email Entry**: Users enter their email address
-2. **OTP Generation**: System generates a 6-digit OTP
-3. **OTP Verification**: Users enter the OTP to authenticate
+2. **Password Entry**: Users enter their password
+3. **Authentication**: System verifies credentials and creates a session
 4. **Session Management**: Secure session tokens with HTTP-only cookies
 
 ## 📁 Document Management
