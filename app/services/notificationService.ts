@@ -6,7 +6,7 @@ export interface Notification {
 	id: string;
 	title: string;
 	message: string;
-	timestamp: Date;
+	createdAt: number; // Unix timestamp in milliseconds
 	type: 'email' | 'document' | 'system';
 	userId: string;
 }
@@ -14,12 +14,12 @@ export interface Notification {
 export class NotificationService {
 	private static convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-	static async addNotification(notification: Omit<Notification, 'id' | 'timestamp'>) {
+	static async addNotification(notification: Omit<Notification, 'id' | 'createdAt'>) {
 		try {
 			const fullNotification: Notification = {
 				...notification,
 				id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-				timestamp: new Date(),
+				createdAt: Date.now(),
 			};
 
 			// Store notification in Convex

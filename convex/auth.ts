@@ -96,7 +96,6 @@ export const generateEmailVerificationToken = mutation({
 				id: user._id,
 				name: user.name,
 				email: user.email,
-				profilePicture: user.profilePicture,
 				createdAt: user.createdAt,
 				updatedAt: user.updatedAt,
 			},
@@ -171,7 +170,6 @@ export const loginUser = mutation({
 				id: user._id,
 				name: user.name,
 				email: user.email,
-				profilePicture: user.profilePicture,
 				createdAt: user.createdAt,
 				updatedAt: user.updatedAt,
 			},
@@ -217,7 +215,6 @@ export const forgotPassword = mutation({
 				id: user._id,
 				name: user.name,
 				email: user.email,
-				profilePicture: user.profilePicture,
 				createdAt: user.createdAt,
 				updatedAt: user.updatedAt,
 			},
@@ -302,6 +299,7 @@ export const getCurrentUser = query({
 			return null;
 		}
 		const user = await ctx.db.get(session.userId);
+		console.log('getCurrentUser: Retrieved user from database:', user);
 		return user;
 	},
 });

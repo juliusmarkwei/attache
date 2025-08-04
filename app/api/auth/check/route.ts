@@ -14,20 +14,26 @@ export async function GET(request: NextRequest) {
 			sessionToken,
 		});
 
+		console.log('Auth check API: Retrieved user from Convex:', user);
+
 		if (!user) {
 			return NextResponse.json({ authenticated: false }, { status: 401 });
 		}
 
+		const userResponse = {
+			id: user._id,
+			name: user.name,
+			email: user.email,
+			createdAt: user.createdAt,
+			updatedAt: user.updatedAt,
+		};
+
+		console.log('Auth check API: Retrieved user from Convex:', user);
+		console.log('Auth check API: Returning user data:', userResponse);
+
 		return NextResponse.json({
 			authenticated: true,
-			user: {
-				id: user._id,
-				name: user.name,
-				email: user.email,
-				profilePicture: user.profilePicture,
-				createdAt: user.createdAt,
-				updatedAt: user.updatedAt,
-			},
+			user: userResponse,
 		});
 	} catch (error) {
 		return NextResponse.json({ authenticated: false }, { status: 401 });

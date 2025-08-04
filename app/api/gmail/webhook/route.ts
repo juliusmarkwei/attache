@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
 }
 
 const processedMessages = new Set<string>();
+const processedAttachments = new Set<string>();
 
 function cleanupProcessedMessages() {
 	if (processedMessages.size > 1000) {
@@ -60,6 +61,39 @@ function cleanupProcessedMessages() {
 		const toRemove = messagesArray.slice(0, 500);
 		toRemove.forEach((id) => processedMessages.delete(id));
 	}
+
+	if (processedAttachments.size > 1000) {
+		const attachmentsArray = Array.from(processedAttachments);
+		const toRemove = attachmentsArray.slice(0, 500);
+		toRemove.forEach((id) => processedAttachments.delete(id));
+	}
+}
+
+function hasAttachments(message: any): boolean {
+	const parts = message.payload?.parts || [];
+
+	// Check main parts for attachments
+	for (const part of parts) {
+		if (part.filename && part.body?.attachmentId) {
+			return true;
+		}
+
+		// Check nested parts for attachments
+		if (part.parts) {
+			for (const subPart of part.parts) {
+				if (subPart.filename && subPart.body?.attachmentId) {
+					return true;
+				}
+			}
+		}
+	}
+
+	// Check if the message itself is an attachment (multipart/mixed or similar)
+	if (message.payload?.filename && message.payload?.body?.attachmentId) {
+		return true;
+	}
+
+	return false;
 }
 
 async function processGmailHistory(historyId: string) {
@@ -96,9 +130,17 @@ async function processGmailHistory(historyId: string) {
 				try {
 					await gmail.users.getProfile({ auth: auth, userId: 'me' });
 				} catch (tokenError) {
+					console.log(`🔄 Token expired for integration ${integration._id}, attempting refresh...`);
 					if (integration.refreshToken) {
 						try {
 							const { credentials } = await auth.refreshAccessToken();
+
+							// Update the auth object with new credentials
+							auth.setCredentials({
+								access_token: credentials.access_token!,
+								refresh_token: credentials.refresh_token || integration.refreshToken,
+								expiry_date: credentials.expiry_date || Date.now() + 3600000,
+							});
 
 							const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 							await convexClient.mutation(api.gmail.updateGmailIntegration, {
@@ -107,13 +149,24 @@ async function processGmailHistory(historyId: string) {
 								refreshToken: credentials.refresh_token || integration.refreshToken,
 								expiryDate: credentials.expiry_date || Date.now() + 3600000,
 							});
+
+							console.log(`✅ Token refreshed successfully for integration ${integration._id}`);
 						} catch (refreshError) {
+							console.error(
+								`❌ Failed to refresh token for integration ${integration._id}:`,
+								refreshError,
+							);
 							continue;
 						}
 					} else {
+						console.log(`❌ No refresh token available for integration ${integration._id}`);
 						continue;
 					}
 				}
+
+				console.log(
+					`📧 Fetching Gmail history for integration ${integration._id} with historyId: ${historyId}`,
+				);
 
 				const historyResponse = await gmail.users.history.list({
 					auth: auth,
@@ -171,7 +224,12 @@ async function processEmail(messageId: string, userId?: string) {
 		return;
 	}
 
+	// Mark message as processed immediately to prevent duplicates
+	processedMessages.add(messageId);
+
 	try {
+		console.log(`📧 Processing email: ${messageId} for user: ${userId || 'unknown'}`);
+
 		// Get the email message
 		const messageResponse = await gmail.users.messages.get({
 			auth: auth,
@@ -187,10 +245,20 @@ async function processEmail(messageId: string, userId?: string) {
 			return;
 		}
 
+		// Check if email has attachments BEFORE processing
+		if (!hasAttachments(message)) {
+			console.log(`📧 Skipping email ${messageId} - no attachments found (no company will be created)`);
+			return;
+		}
+
+		console.log(`📎 Email ${messageId} has attachments - processing company and documents...`);
+
 		// Extract email subject and sender
 		const subject = headers.find((h: any) => h.name === 'Subject')?.value || '';
 		const from = headers.find((h: any) => h.name === 'From')?.value || '';
 		const date = headers.find((h: any) => h.name === 'Date')?.value || '';
+
+		console.log(`📧 Email details - Subject: "${subject}", From: "${from}"`);
 
 		// Extract clean email address from "Name <email@domain.com>" format
 		const cleanEmail = extractEmailFromString(from);
@@ -202,8 +270,11 @@ async function processEmail(messageId: string, userId?: string) {
 		}
 
 		if (!companyName) {
+			console.log('⚠️ Could not extract company name from email');
 			return;
 		}
+
+		console.log(`🏢 Extracted company: ${companyName} from email: ${cleanEmail}`);
 
 		// Initialize Convex client
 		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -237,6 +308,10 @@ async function processEmail(messageId: string, userId?: string) {
 			return;
 		}
 
+		// Process attachments (email has attachments, so we know this will work)
+		await processAttachments(message, company._id, cleanEmail, userId);
+
+		// Only send notification for emails with attachments
 		if (userId) {
 			try {
 				await NotificationService.addEmailNotification(userId, subject, company.name);
@@ -245,13 +320,10 @@ async function processEmail(messageId: string, userId?: string) {
 			}
 		}
 
-		// Process attachments
-		await processAttachments(message, company._id, cleanEmail, userId);
-
-		processedMessages.add(messageId);
 		cleanupProcessedMessages();
+		console.log(`✅ Successfully processed email ${messageId} with attachments`);
 	} catch (error) {
-		// Handle error silently
+		console.error(`❌ Error processing email ${messageId}:`, error);
 	}
 }
 
@@ -371,13 +443,54 @@ async function processAttachments(message: any, companyId: string, uploadedBy: s
 				}
 			}
 		}
+
+		console.log(`✅ Processed ${attachmentCount} attachments for message ${message.id}`);
 	} catch (error) {
-		// Handle error silently
+		console.error(`❌ Error processing attachments for message ${message.id}:`, error);
 	}
 }
 
 async function processAttachment(part: any, companyId: string, uploadedBy: string, messageId: string, userId?: string) {
+	// Create unique identifier for this attachment
+	const attachmentId = `${messageId}_${part.body.attachmentId}`;
+
+	if (processedAttachments.has(attachmentId)) {
+		console.log(`🔄 Skipping already processed attachment: ${part.filename} (${attachmentId})`);
+		return;
+	}
+
 	try {
+		console.log(`📎 Processing attachment: ${part.filename} (${part.mimeType})`);
+
+		// Check file size (limit to 10MB)
+		const maxSize = 10 * 1024 * 1024; // 10MB
+		if (part.body?.size && part.body.size > maxSize) {
+			console.log(`⚠️ Skipping large file: ${part.filename} (${part.body.size} bytes)`);
+			return;
+		}
+
+		// Check file type (only allow common document types)
+		const allowedTypes = [
+			'application/pdf',
+			'application/msword',
+			'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+			'application/vnd.ms-excel',
+			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			'application/vnd.ms-powerpoint',
+			'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+			'text/plain',
+			'image/jpeg',
+			'image/png',
+			'image/gif',
+			'image/bmp',
+			'image/tiff',
+		];
+
+		if (!allowedTypes.includes(part.mimeType)) {
+			console.log(`⚠️ Skipping unsupported file type: ${part.filename} (${part.mimeType})`);
+			return;
+		}
+
 		const attachmentResponse = await gmail.users.messages.attachments.get({
 			auth: auth,
 			userId: 'me',
@@ -387,10 +500,12 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 
 		const attachmentData = attachmentResponse.data.data;
 		if (!attachmentData) {
+			console.log(`⚠️ No attachment data found for: ${part.filename}`);
 			return;
 		}
 
 		const buffer = Buffer.from(attachmentData, 'base64');
+		console.log(`📎 Downloaded attachment: ${part.filename} (${buffer.length} bytes)`);
 
 		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -438,7 +553,12 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 				// Handle error silently
 			}
 		}
+
+		// Mark this attachment as processed
+		processedAttachments.add(attachmentId);
+		cleanupProcessedMessages();
+		console.log(`✅ Successfully processed attachment: ${part.filename}`);
 	} catch (error) {
-		// Handle error silently
+		console.error(`❌ Error processing attachment ${part.filename}:`, error);
 	}
 }

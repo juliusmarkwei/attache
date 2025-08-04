@@ -1,12 +1,24 @@
 'use client';
 
 import { useQuery } from 'convex/react';
-import { Calendar, ChevronLeft, ChevronRight, Download, Eye, FileText, Filter, HardDrive, Search } from 'lucide-react';
+import {
+	Calendar,
+	ChevronLeft,
+	ChevronRight,
+	Download,
+	Eye,
+	FileText,
+	Filter,
+	HardDrive,
+	Search,
+	Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import ConfirmationModal from '../../components/ui/confirmation-modal';
 import DocumentViewer from '../../components/ui/document-viewer';
 import { Input } from '../../components/ui/input';
 
@@ -48,6 +60,42 @@ export default function DocumentsPage() {
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 20;
 	const [selectedDocument, setSelectedDocument] = useState<any>(null);
+	const [deletingDocument, setDeletingDocument] = useState<string | null>(null);
+	const [showDeleteModal, setShowDeleteModal] = useState(false);
+	const [documentToDelete, setDocumentToDelete] = useState<{ id: string; name: string } | null>(null);
+
+	const handleDelete = async (documentId: string, filename: string) => {
+		setDeletingDocument(documentId);
+		setShowDeleteModal(false);
+
+		try {
+			const response = await fetch(`/api/documents/delete?documentId=${documentId}`, {
+				method: 'DELETE',
+			});
+
+			if (response.ok) {
+				// Refresh the documents list by triggering a re-query
+				// The Convex query will automatically update
+			} else {
+				const errorData = await response.json();
+				console.error('Delete failed:', errorData.error);
+			}
+		} catch (error) {
+			console.error('Delete failed:', error);
+		} finally {
+			setDeletingDocument(null);
+		}
+	};
+
+	const openDeleteModal = (documentId: string, filename: string) => {
+		setDocumentToDelete({ id: documentId, name: filename });
+		setShowDeleteModal(true);
+	};
+
+	const closeDeleteModal = () => {
+		setShowDeleteModal(false);
+		setDocumentToDelete(null);
+	};
 
 	const filteredDocuments =
 		documents?.filter((doc) => {
@@ -479,6 +527,20 @@ export default function DocumentsPage() {
 												>
 													<Download className="h-4 w-4" />
 												</Button>
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() => openDeleteModal(doc._id, doc.originalName)}
+													disabled={deletingDocument === doc._id}
+													className="border-red-600 text-red-400 hover:bg-red-600/20 disabled:opacity-50"
+													title="Delete document"
+												>
+													{deletingDocument === doc._id ? (
+														<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
+													) : (
+														<Trash2 className="h-4 w-4" />
+													)}
+												</Button>
 											</div>
 										</div>
 									);
@@ -545,6 +607,18 @@ export default function DocumentsPage() {
 						onClose={() => setSelectedDocument(null)}
 					/>
 				)}
+
+				{/* Delete Confirmation Modal */}
+				<ConfirmationModal
+					isOpen={showDeleteModal}
+					onClose={closeDeleteModal}
+					onConfirm={() => documentToDelete && handleDelete(documentToDelete.id, documentToDelete.name)}
+					title="Delete Document"
+					description={`Are you sure you want to delete "${documentToDelete?.name}"? This action cannot be undone.`}
+					confirmText="Delete Document"
+					cancelText="Cancel"
+					isLoading={deletingDocument === documentToDelete?.id}
+				/>
 			</div>
 		</DashboardLayout>
 	);

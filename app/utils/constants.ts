@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
 	},
 	documents: {
 		download: '/api/documents/download',
+		delete: '/api/documents/delete',
 	},
 	gmail: {
 		webhook: '/api/gmail/webhook',
@@ -97,4 +98,5 @@ export const SUCCESS_MESSAGES = {
 	verification: 'OTP verified successfully! Redirecting...',
 	logout: 'Logged out successfully',
 	download: 'Download started',
+	delete: 'Document deleted successfully',
 } as const;

@@ -16,6 +16,18 @@ export const addDocumentToCompany = mutation({
 	handler: async (ctx, args) => {
 		const { companyId, filename, originalName, contentType, size, storageId, uploadedBy, metadata } = args;
 
+		// Check if document with same storageId already exists for this company
+		const existingDocument = await ctx.db
+			.query('documents')
+			.withIndex('by_company', (q) => q.eq('companyId', companyId))
+			.filter((q) => q.eq(q.field('storageId'), storageId))
+			.first();
+
+		if (existingDocument) {
+			console.log(`🔄 Document with storageId ${storageId} already exists for company ${companyId}`);
+			return existingDocument._id;
+		}
+
 		const documentId = await ctx.db.insert('documents', {
 			companyId,
 			filename,

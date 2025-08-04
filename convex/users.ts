@@ -16,16 +16,19 @@ export const updateProfile = mutation({
 		userId: v.id('users'),
 		name: v.optional(v.string()),
 		email: v.optional(v.string()),
-		profilePicture: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const { userId, ...updates } = args;
+
+		console.log('updateProfile called with:', { userId, updates });
 
 		// Check if user exists
 		const user = await ctx.db.get(userId);
 		if (!user) {
 			throw new Error('User not found');
 		}
+
+		console.log('Found user:', user);
 
 		// Validate name if provided
 		if (updates.name !== undefined) {
@@ -45,17 +48,6 @@ export const updateProfile = mutation({
 			}
 		}
 
-		// Validate profile picture if provided
-		if (updates.profilePicture !== undefined) {
-			if (
-				updates.profilePicture &&
-				!updates.profilePicture.startsWith('data:image/') &&
-				!updates.profilePicture.match(/^[a-zA-Z0-9_-]+$/)
-			) {
-				throw new Error('Invalid profile picture format');
-			}
-		}
-
 		// Only update fields that are provided
 		const updateData: any = {
 			updatedAt: Date.now(),
@@ -63,10 +55,11 @@ export const updateProfile = mutation({
 
 		if (updates.name !== undefined) updateData.name = updates.name.trim();
 		if (updates.email !== undefined) updateData.email = updates.email.toLowerCase();
-		if (updates.profilePicture !== undefined) updateData.profilePicture = updates.profilePicture;
 
+		console.log('Updating user with data:', updateData);
 		await ctx.db.patch(userId, updateData);
 
+		console.log('User updated successfully');
 		return { success: true };
 	},
 });

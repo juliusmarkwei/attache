@@ -14,7 +14,6 @@ interface SidebarProps {
 		id: string;
 		name: string;
 		email: string;
-		profilePicture?: string;
 	} | null;
 	gmailIntegration?: any;
 }
@@ -111,18 +110,8 @@ export default function Sidebar({
 				{user && (
 					<div className="px-4 py-3 border-b border-slate-700">
 						<div className={`flex items-center space-x-3 ${collapsed ? 'justify-center' : ''}`}>
-							<div className="relative">
-								{user.profilePicture ? (
-									<img
-										src={user.profilePicture}
-										alt={user.name}
-										className="h-8 w-8 rounded-full object-cover border-2 border-slate-600"
-									/>
-								) : (
-									<div className="h-8 w-8 rounded-full bg-[#FFB900] flex items-center justify-center text-black font-semibold text-sm">
-										{user.name.charAt(0).toUpperCase()}
-									</div>
-								)}
+							<div className="h-8 w-8 rounded-full bg-[#FFB900] flex items-center justify-center text-black font-semibold text-sm">
+								{user.name.charAt(0).toUpperCase()}
 							</div>
 							{!collapsed && (
 								<div className="flex-1 min-w-0">

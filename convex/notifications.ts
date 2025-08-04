@@ -37,10 +37,7 @@ export const getNotifications = query({
 			.order('desc')
 			.collect();
 
-		return notifications.map((notification) => ({
-			...notification,
-			timestamp: new Date(notification.createdAt),
-		}));
+		return notifications;
 	},
 });
 

@@ -3,7 +3,7 @@
 import { useQuery } from 'convex/react';
 import { Building2, Calendar, Download, FileText, Mail, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../convex/_generated/api';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
@@ -41,16 +41,53 @@ export default function Dashboard() {
 	const gmailIntegration = useQuery(api.gmail.getGmailIntegration, user?.id ? { userId: user.id as any } : 'skip');
 
 	const [showGmailBanner, setShowGmailBanner] = useState(true);
+	const [showActiveBanner, setShowActiveBanner] = useState(true);
+
+	// Check if user has dismissed the banners in this session
+	useEffect(() => {
+		const dismissed = sessionStorage.getItem('gmail_banner_dismissed');
+		const activeDismissed = sessionStorage.getItem('gmail_active_banner_dismissed');
+
+		if (dismissed === 'true') {
+			setShowGmailBanner(false);
+		}
+		if (activeDismissed === 'true') {
+			setShowActiveBanner(false);
+		}
+	}, []);
+
+	// Reset banner if user gets Gmail integration and then loses it
+	useEffect(() => {
+		// Only run this effect when gmailIntegration is loaded (not undefined)
+		if (gmailIntegration !== undefined) {
+			if (!gmailIntegration) {
+				// User doesn't have Gmail integration, show banner if not dismissed
+				const dismissed = sessionStorage.getItem('gmail_banner_dismissed');
+				if (dismissed !== 'true') {
+					setShowGmailBanner(true);
+				}
+			} else if (gmailIntegration) {
+				// User has Gmail integration, hide connect banner
+				setShowGmailBanner(false);
+			}
+		}
+	}, [gmailIntegration]);
+
+	// Handle banner dismissal
+	const handleDismissBanner = () => {
+		setShowGmailBanner(false);
+		sessionStorage.setItem('gmail_banner_dismissed', 'true');
+	};
+
+	// Handle active banner dismissal
+	const handleDismissActiveBanner = () => {
+		setShowActiveBanner(false);
+		sessionStorage.setItem('gmail_active_banner_dismissed', 'true');
+	};
 
 	if (companies === undefined || documents === undefined || gmailIntegration === undefined) {
 		return (
-			<DashboardLayout
-				onLogout={handleLogout}
-				user={user}
-				gmailIntegration={gmailIntegration}
-				loading={loading}
-				authChecked={authChecked}
-			>
+			<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
 				<div className="space-y-6">
 					{/* Header */}
 					<div className="flex items-center justify-between">
@@ -160,7 +197,7 @@ export default function Dashboard() {
 				</div>
 
 				{/* Gmail Integration Active Banner */}
-				{gmailIntegration && (
+				{gmailIntegration && showActiveBanner && (
 					<div className="mb-6 p-4 bg-green-600/20 border border-green-500/30 rounded-lg">
 						<div className="flex items-center justify-between">
 							<div className="flex items-center space-x-3">
@@ -183,7 +220,7 @@ export default function Dashboard() {
 								<Button
 									variant="ghost"
 									size="sm"
-									onClick={() => setShowGmailBanner(false)}
+									onClick={handleDismissActiveBanner}
 									className="text-green-400 hover:text-green-300 hover:bg-green-600/20"
 								>
 									<X className="h-4 w-4" />
@@ -216,7 +253,7 @@ export default function Dashboard() {
 								<Button
 									variant="ghost"
 									size="sm"
-									onClick={() => setShowGmailBanner(false)}
+									onClick={handleDismissBanner}
 									className="text-slate-400 hover:text-white hover:bg-slate-700/50"
 								>
 									<X className="h-4 w-4" />

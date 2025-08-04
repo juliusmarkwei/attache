@@ -4,7 +4,6 @@ import { Inter } from 'next/font/google';
 import { AuthInitializer } from './components/providers/AuthInitializer';
 import ConvexProviderWrapper from './components/providers/ConvexProvider';
 import { Toaster } from './components/ui/sonner';
-import { NotificationProvider } from './contexts/NotificationContext';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -23,11 +22,9 @@ export default function RootLayout({
 		<html lang="en">
 			<body className={inter.className}>
 				<ConvexProviderWrapper>
-					<NotificationProvider>
-						<AuthInitializer />
-						{children}
-						<Toaster />
-					</NotificationProvider>
+					<AuthInitializer />
+					{children}
+					<Toaster />
 				</ConvexProviderWrapper>
 			</body>
 		</html>

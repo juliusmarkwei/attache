@@ -6,7 +6,6 @@ export default defineSchema({
 		name: v.string(),
 		email: v.string(),
 		password: v.string(),
-		profilePicture: v.optional(v.string()),
 		isVerified: v.boolean(),
 		createdAt: v.number(),
 		updatedAt: v.number(),

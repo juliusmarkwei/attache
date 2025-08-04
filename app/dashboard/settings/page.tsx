@@ -1,8 +1,8 @@
 'use client';
 
 import { useMutation, useQuery } from 'convex/react';
-import { Camera, Mail, Save, User, X } from 'lucide-react';
-import React, { useRef, useState } from 'react';
+import { Mail, Save, User } from 'lucide-react';
+import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../../convex/_generated/api';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
@@ -14,23 +14,28 @@ import { useAuth } from '../../hooks/useAuth';
 import { useAuthStore } from '../../stores/authStore';
 
 export default function SettingsPage() {
-	const { user, handleLogout } = useAuth();
+	const { user, handleLogout, checkAuth } = useAuth();
 	const { setUser } = useAuthStore();
 	const gmailIntegration = useQuery(api.gmail.getGmailIntegration, user?.id ? { userId: user.id as any } : 'skip');
 
 	const [name, setName] = useState(user?.name || '');
 	const [email, setEmail] = useState(user?.email || '');
-	const [profilePicture, setProfilePicture] = useState(user?.profilePicture || '');
-	const [isUploading, setIsUploading] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
 	React.useEffect(() => {
 		if (user) {
 			setName(user.name || '');
 			setEmail(user.email || '');
-			setProfilePicture(user.profilePicture || '');
+			setHasUnsavedChanges(false);
 		}
 	}, [user]);
+
+	// Track unsaved changes
+	React.useEffect(() => {
+		const hasChanges = name !== (user?.name || '');
+
+		setHasUnsavedChanges(hasChanges);
+	}, [name, user]);
 
 	const updateProfile = useMutation(api.users.updateProfile);
 
@@ -43,26 +48,24 @@ export default function SettingsPage() {
 			return;
 		}
 
-		console.log('Saving profile with data:', {
-			userId: user.id,
-			name: name.trim(),
-			profilePicture,
-		});
-
 		try {
 			await updateProfile({
 				userId: user.id as any,
 				name: name.trim(),
-				profilePicture,
-				// Don't send email since it's disabled
 			});
 
 			// Update the user in the auth store with new data
-			setUser({
+			const updatedUser = {
 				...user,
 				name: name.trim(),
-				profilePicture,
-			});
+			};
+			setUser(updatedUser);
+
+			// Force a refresh of the auth state to ensure all components update
+			await checkAuth(false);
+
+			// Clear unsaved changes flag
+			setHasUnsavedChanges(false);
 
 			toast.success('Profile updated successfully');
 		} catch (error) {
@@ -70,110 +73,6 @@ export default function SettingsPage() {
 			toast.error('Failed to update profile');
 		}
 	};
-
-	const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.[0];
-		if (!file) return;
-
-		if (!file.type.startsWith('image/')) {
-			toast.error('Please select an image file');
-			return;
-		}
-
-		if (file.size > 5 * 1024 * 1024) {
-			toast.error('File size must be less than 5MB');
-			return;
-		}
-
-		setIsUploading(true);
-		try {
-			// Generate upload URL from Convex
-			const uploadUrl = await fetch('/api/files/generate-upload-url').then((res) => res.json());
-
-			if (!uploadUrl.url) {
-				throw new Error('Failed to generate upload URL');
-			}
-
-			// Upload file to Convex storage
-			const uploadResponse = await fetch(uploadUrl.url, {
-				method: 'POST',
-				headers: {
-					'Content-Type': file.type,
-				},
-				body: file,
-			});
-
-			if (!uploadResponse.ok) {
-				throw new Error('Failed to upload file');
-			}
-
-			const { storageId } = await uploadResponse.json();
-
-			// Save file metadata
-			await fetch('/api/files/save-metadata', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					storageId,
-					filename: file.name,
-					contentType: file.type,
-					size: file.size,
-				}),
-			});
-
-			// Update profile picture with storage ID
-			setProfilePicture(storageId);
-			setIsUploading(false);
-			toast.success('Profile picture uploaded successfully. Click "Save Changes" to update your profile.');
-		} catch (error) {
-			console.error('Upload error:', error);
-			setIsUploading(false);
-			toast.error('Failed to upload image');
-		}
-	};
-
-	const handleRemovePicture = () => {
-		setProfilePicture('');
-		toast.success('Profile picture removed');
-	};
-
-	// Function to get profile picture URL
-	const getProfilePictureUrl = (profilePicture: string | undefined) => {
-		if (!profilePicture) return null;
-
-		// If it's a data URL (old format), return as is
-		if (profilePicture.startsWith('data:')) {
-			return profilePicture;
-		}
-
-		// If it's a storage ID, construct the URL
-		return `/api/files/get-url?storageId=${profilePicture}`;
-	};
-
-	// State to store the resolved image URL
-	const [imageUrl, setImageUrl] = useState<string | null>(null);
-
-	// Fetch the image URL when profile picture changes
-	React.useEffect(() => {
-		if (profilePicture && !profilePicture.startsWith('data:')) {
-			fetch(`/api/files/get-url?storageId=${profilePicture}`)
-				.then((res) => res.json())
-				.then((data) => {
-					if (data.url) {
-						setImageUrl(data.url);
-					}
-				})
-				.catch((error) => {
-					console.error('Error fetching image URL:', error);
-				});
-		} else if (profilePicture && profilePicture.startsWith('data:')) {
-			setImageUrl(profilePicture);
-		} else {
-			setImageUrl(null);
-		}
-	}, [profilePicture]);
 
 	return (
 		<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
@@ -196,71 +95,6 @@ export default function SettingsPage() {
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-6">
-						{/* Profile Picture */}
-						<div className="space-y-4">
-							<Label className="text-slate-300">Profile Picture</Label>
-							<div className="flex items-center space-x-4">
-								<div className="relative">
-									{imageUrl ? (
-										<img
-											src={imageUrl}
-											alt="Profile"
-											className="h-20 w-20 rounded-full object-cover border-2 border-slate-600"
-											onError={(e) => {
-												// Fallback to initials if image fails to load
-												e.currentTarget.style.display = 'none';
-												e.currentTarget.nextElementSibling?.classList.remove('hidden');
-											}}
-										/>
-									) : null}
-									{!profilePicture && (
-										<div className="h-20 w-20 rounded-full bg-[#FFB900] flex items-center justify-center text-black font-semibold text-2xl">
-											{name.charAt(0).toUpperCase()}
-										</div>
-									)}
-									{/* Fallback initials (hidden by default) */}
-									<div className="h-20 w-20 rounded-full bg-[#FFB900] flex items-center justify-center text-black font-semibold text-2xl hidden">
-										{name.charAt(0).toUpperCase()}
-									</div>
-									{isUploading && (
-										<div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
-											<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-										</div>
-									)}
-								</div>
-								<div className="space-y-2 flex gap-2">
-									<Button
-										onClick={() => fileInputRef.current?.click()}
-										variant="outline"
-										size="sm"
-										className="border-slate-600 text-slate-200 hover:bg-slate-700"
-										disabled={isUploading}
-									>
-										<Camera className="h-4 w-4 mr-2" />
-										{isUploading ? 'Uploading...' : 'Upload Photo'}
-									</Button>
-									{profilePicture && (
-										<Button
-											onClick={handleRemovePicture}
-											variant="outline"
-											size="sm"
-											className="border-red-600 text-red-400 hover:bg-red-600/10"
-										>
-											<X className="h-4 w-4 mr-2" />
-											Remove
-										</Button>
-									)}
-									<input
-										ref={fileInputRef}
-										type="file"
-										accept="image/*"
-										onChange={handleFileUpload}
-										className="hidden"
-									/>
-								</div>
-							</div>
-						</div>
-
 						{/* Name */}
 						<div className="space-y-2">
 							<Label htmlFor="name" className="text-slate-300">
@@ -292,10 +126,22 @@ export default function SettingsPage() {
 						</div>
 
 						{/* Save Button */}
-						<Button onClick={handleSave} className="bg-[#FFB900] text-black hover:bg-[#FFB900]/90">
+						<Button
+							onClick={handleSave}
+							className={`${
+								hasUnsavedChanges
+									? 'bg-orange-500 text-white hover:bg-orange-600 animate-pulse'
+									: 'bg-[#FFB900] text-black hover:bg-[#FFB900]/90'
+							}`}
+							disabled={!hasUnsavedChanges}
+						>
 							<Save className="h-4 w-4 mr-2" />
-							Save Changes
+							{hasUnsavedChanges ? 'Save Changes*' : 'Save Changes'}
 						</Button>
+
+						{hasUnsavedChanges && (
+							<p className="text-xs text-orange-400 mt-1">* You have unsaved changes</p>
+						)}
 					</CardContent>
 				</Card>
 

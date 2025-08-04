@@ -10,17 +10,8 @@ export async function POST(request: NextRequest) {
 
 		// Check for session token in cookies
 		const sessionToken = request.cookies.get('session_token')?.value;
-		console.log('📧 Subscribe request received:', {
-			hasAccessToken: !!access_token,
-			hasRefreshToken: !!refresh_token,
-			hasUserId: !!userId,
-			userId: userId,
-			bodyKeys: Object.keys(body),
-			hasSessionToken: !!sessionToken,
-		});
 
 		if (!access_token) {
-			console.log('❌ Missing access_token');
 			return NextResponse.json(
 				{
 					error: 'Access token is required',
@@ -32,15 +23,12 @@ export async function POST(request: NextRequest) {
 		// If userId is not provided, try to get it from session token
 		let finalUserId = userId;
 		if (!finalUserId && sessionToken) {
-			console.log('🔍 No userId provided, trying to get from session token...');
 			try {
 				const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 				const user = await convex.query(api.auth.getCurrentUser, { sessionToken });
 				if (user) {
 					finalUserId = user._id;
-					console.log('✅ Got userId from session:', finalUserId);
 				} else {
-					console.log('❌ No user found for session token');
 				}
 			} catch (error) {
 				console.log('❌ Error getting user from session:', error);
@@ -48,7 +36,6 @@ export async function POST(request: NextRequest) {
 		}
 
 		if (!finalUserId) {
-			console.log('❌ Missing userId');
 			return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
 		}
 
@@ -68,7 +55,6 @@ export async function POST(request: NextRequest) {
 		const gmail = google.gmail({ version: 'v1', auth });
 
 		// Verify Gmail API access first
-		console.log('📧 Verifying Gmail API access...');
 
 		try {
 			const profile = await gmail.users.getProfile({ userId: 'me' });
@@ -80,7 +66,6 @@ export async function POST(request: NextRequest) {
 			if (refresh_token) {
 				try {
 					const { credentials } = await auth.refreshAccessToken();
-					console.log('✅ Successfully refreshed access token');
 
 					// Update the stored tokens in the database
 					const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -90,12 +75,7 @@ export async function POST(request: NextRequest) {
 						refreshToken: credentials.refresh_token || refresh_token,
 						expiryDate: credentials.expiry_date || Date.now() + 3600000,
 					});
-
-					// Verify again with new token
-					const profile = await gmail.users.getProfile({ userId: 'me' });
-					console.log(`✅ Connected to Gmail account: ${profile.data.emailAddress}`);
 				} catch (refreshError) {
-					console.error('❌ Failed to refresh token:', refreshError);
 					return NextResponse.json(
 						{
 							error: 'Access token expired and refresh failed',
@@ -105,7 +85,6 @@ export async function POST(request: NextRequest) {
 					);
 				}
 			} else {
-				console.error('❌ No refresh token available');
 				return NextResponse.json(
 					{
 						error: 'Access token expired and no refresh token available',
@@ -116,9 +95,6 @@ export async function POST(request: NextRequest) {
 			}
 		}
 
-		// Set up Gmail watch (push notifications) with your specific topic
-		console.log('📧 Setting up Gmail push notifications...');
-
 		try {
 			const watchResponse = await gmail.users.watch({
 				userId: 'me',
@@ -127,8 +103,6 @@ export async function POST(request: NextRequest) {
 					labelIds: ['INBOX'],
 				},
 			});
-
-			console.log('✅ Gmail watch configured successfully');
 
 			// Store the integration in the database
 			const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -154,8 +128,6 @@ export async function POST(request: NextRequest) {
 				expiration: watchResponse.data.expiration,
 			});
 		} catch (watchError) {
-			console.error('❌ Error setting up Gmail watch:', watchError);
-
 			// Check if it's a topic/push notification issue
 			if (watchError instanceof Error && watchError.message.includes('topic')) {
 				console.log('📧 Topic not configured, but still storing integration for local development');
@@ -193,11 +165,6 @@ export async function POST(request: NextRequest) {
 			);
 		}
 	} catch (error) {
-		console.error('❌ Error setting up Gmail access:', error);
-		console.error('❌ Error details:', {
-			message: error instanceof Error ? error.message : 'Unknown error',
-			stack: error instanceof Error ? error.stack : undefined,
-		});
 		return NextResponse.json(
 			{
 				error: 'Failed to configure Gmail access',

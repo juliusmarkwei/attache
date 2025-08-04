@@ -15,7 +15,6 @@ interface DashboardLayoutProps {
 		id: string;
 		name: string;
 		email: string;
-		profilePicture?: string;
 	} | null;
 }
 

@@ -7,7 +7,7 @@ export interface Notification {
 	id: string;
 	title: string;
 	message: string;
-	timestamp: Date;
+	createdAt: number; // Unix timestamp in milliseconds
 	type: 'email' | 'document' | 'system';
 }
 
@@ -20,7 +20,7 @@ export function useNotifications(userId?: string) {
 		id: notification._id,
 		title: notification.title,
 		message: notification.message,
-		timestamp: notification.timestamp,
+		createdAt: notification.createdAt, // Use createdAt from Convex
 		type: notification.type,
 	}));
 
