@@ -44,7 +44,6 @@ export default function VerifyEmailPage() {
 					setVerificationStatus('error');
 				}
 			} catch (error) {
-				console.error('Email verification error:', error);
 				toast.error('Network error. Please try again.');
 				setVerificationStatus('error');
 			} finally {

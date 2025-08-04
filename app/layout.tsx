@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+
+import { AuthInitializer } from './components/providers/AuthInitializer';
 import ConvexProviderWrapper from './components/providers/ConvexProvider';
 import { Toaster } from './components/ui/sonner';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -22,6 +24,7 @@ export default function RootLayout({
 			<body className={inter.className}>
 				<ConvexProviderWrapper>
 					<NotificationProvider>
+						<AuthInitializer />
 						{children}
 						<Toaster />
 					</NotificationProvider>

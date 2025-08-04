@@ -37,7 +37,6 @@ export default function ForgotPasswordPage() {
 				toast.error(data.error || 'Failed to send reset email');
 			}
 		} catch (error) {
-			console.error('Forgot password error:', error);
 			toast.error('Network error. Please try again.');
 		} finally {
 			setLoading(false);

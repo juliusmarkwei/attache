@@ -36,8 +36,6 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
 		}
 	} catch (error: any) {
-		console.error('Forgot password error:', error);
-		// Don't reveal if user exists or not for security
 		return NextResponse.json({
 			success: true,
 			message: 'If an account with this email exists, a password reset link has been sent.',

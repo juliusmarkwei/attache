@@ -2,7 +2,7 @@
 
 import { useQuery } from 'convex/react';
 import { Building2, ChevronLeft, ChevronRight, Mail, MapPin, Phone, Search } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import { Button } from '../../components/ui/button';
@@ -12,21 +12,14 @@ import { Input } from '../../components/ui/input';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function CompaniesPage() {
-	const { user, loading, authChecked, handleLogout, checkAuth } = useAuth();
-
-	// Check authentication on mount
-	React.useEffect(() => {
-		if (!authChecked) {
-			checkAuth();
-		}
-	}, [authChecked, checkAuth]);
+	const { user, handleLogout } = useAuth();
 
 	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as any } : 'skip');
+	const gmailIntegration = useQuery(api.gmail.getGmailIntegration, user?.id ? { userId: user.id as any } : 'skip');
 	const [searchTerm, setSearchTerm] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 12;
 
-	// Filter companies based on search term
 	const filteredCompanies =
 		companies?.filter(
 			(company) =>
@@ -35,16 +28,14 @@ export default function CompaniesPage() {
 				company.location?.toLowerCase().includes(searchTerm.toLowerCase()),
 		) || [];
 
-	// Calculate pagination
 	const totalPages = Math.ceil(filteredCompanies.length / itemsPerPage);
 	const startIndex = (currentPage - 1) * itemsPerPage;
 	const endIndex = startIndex + itemsPerPage;
 	const paginatedCompanies = filteredCompanies.slice(startIndex, endIndex);
 
-	// Show loading state while data is being fetched
 	if (!companies) {
 		return (
-			<DashboardLayout onLogout={handleLogout} user={user}>
+			<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
 				<div className="space-y-6">
 					{/* Header */}
 					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -64,12 +55,12 @@ export default function CompaniesPage() {
 						</div>
 					</div>
 
-					{/* Loading statistics */}
+					{/* Loading skeleton for statistics */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 						{Array.from({ length: 3 }).map((_, index) => (
 							<div
 								key={index}
-								className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-6 animate-pulse"
+								className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 animate-pulse"
 							>
 								<div className="space-y-4">
 									<div className="h-4 bg-slate-700 rounded w-3/4"></div>
@@ -80,14 +71,14 @@ export default function CompaniesPage() {
 						))}
 					</div>
 
-					{/* Loading companies grid */}
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
+					{/* Loading skeleton for companies grid */}
+					<Card className="bg-slate-800/50 border-slate-700">
 						<CardHeader>
-							<CardTitle className="text-slate-100">All Companies</CardTitle>
+							<CardTitle className="text-white">All Companies</CardTitle>
 							<CardDescription className="text-slate-400">Loading companies...</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
 								{Array.from({ length: 12 }).map((_, index) => (
 									<div key={index} className="bg-slate-700/50 rounded-lg p-4 animate-pulse">
 										<div className="space-y-3">
@@ -106,7 +97,7 @@ export default function CompaniesPage() {
 	}
 
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user}>
+		<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
 			<div className="space-y-6">
 				{/* Header */}
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

@@ -4,6 +4,8 @@ import { useQuery } from 'convex/react';
 import { Building2, Calendar, Download, FileText, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import { useAuth } from '../../hooks/useAuth';
 import { Document, DocumentListProps } from '../../types';
 import { API_ENDPOINTS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../../utils/constants';
 import { formatDate, formatFileSize } from '../../utils/formatters';
@@ -11,9 +13,10 @@ import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 
 export default function DocumentList({ companyId }: DocumentListProps) {
+	const { user } = useAuth();
 	const documents = useQuery(
 		companyId ? api.documents.getDocumentsByCompany : api.documents.getAllDocuments,
-		companyId ? { companyId: companyId as any } : {},
+		companyId ? { companyId: companyId as Id<'companies'> } : { userId: user?.id as Id<'users'> },
 	);
 
 	if (!documents) {
@@ -60,7 +63,6 @@ export default function DocumentList({ companyId }: DocumentListProps) {
 				});
 			}
 		} catch (error) {
-			console.error('Download failed:', error);
 			toast.error('Download failed', {
 				description: ERROR_MESSAGES.network,
 			});

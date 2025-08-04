@@ -1,7 +1,7 @@
 'use client';
 
 import { Building2, ChevronLeft, ChevronRight, FileText, Home, LogOut, Mail, Settings, X } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '../ui/button';
 
@@ -28,6 +28,7 @@ export default function Sidebar({
 	gmailIntegration,
 }: SidebarProps) {
 	const pathname = usePathname();
+	const router = useRouter();
 	const [collapsed, setCollapsed] = useState(false);
 
 	const handleCollapse = () => {
@@ -146,10 +147,10 @@ export default function Sidebar({
 						}
 
 						return (
-							<a
+							<button
 								key={item.id}
-								href={item.href}
-								className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+								onClick={() => router.push(item.href)}
+								className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors w-full text-left ${
 									collapsed ? 'justify-center' : ''
 								} ${
 									isActive
@@ -160,7 +161,7 @@ export default function Sidebar({
 							>
 								<Icon className="h-8 w-8" />
 								{!collapsed && <span className="font-medium">{item.label}</span>}
-							</a>
+							</button>
 						);
 					})}
 
@@ -208,7 +209,6 @@ export default function Sidebar({
 							<LogOut className="h-6 w-6" />
 							{!collapsed && <span className="ml-2">Logout</span>}
 						</Button>
-						{!collapsed && <div className="text-xs text-slate-400 text-center">© 2024 Attache</div>}
 					</div>
 				</div>
 			</div>

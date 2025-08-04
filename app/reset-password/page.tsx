@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle, Loader2, Lock, XCircle } from 'lucide-react';
+import { CheckCircle, Eye, EyeOff, Loader2, Lock, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -16,6 +16,8 @@ export default function ResetPasswordPage() {
 	const [loading, setLoading] = useState(false);
 	const [tokenValid, setTokenValid] = useState<boolean | null>(null);
 	const [passwordReset, setPasswordReset] = useState(false);
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const token = searchParams.get('token');
@@ -26,7 +28,6 @@ export default function ResetPasswordPage() {
 			return;
 		}
 
-		// Verify token validity
 		const verifyToken = async () => {
 			try {
 				const response = await fetch('/api/auth/verify-reset-token', {
@@ -40,7 +41,6 @@ export default function ResetPasswordPage() {
 				const data = await response.json();
 				setTokenValid(data.valid);
 			} catch (error) {
-				console.error('Token verification error:', error);
 				setTokenValid(false);
 			}
 		};
@@ -51,13 +51,11 @@ export default function ResetPasswordPage() {
 	const handleResetPassword = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		// Validate passwords match
 		if (passwordData.password !== passwordData.confirmPassword) {
 			toast.error('Passwords do not match');
 			return;
 		}
 
-		// Validate password strength
 		if (passwordData.password.length < 8) {
 			toast.error('Password must be at least 8 characters long');
 			return;
@@ -87,7 +85,6 @@ export default function ResetPasswordPage() {
 				toast.error(data.error || 'Failed to reset password');
 			}
 		} catch (error) {
-			console.error('Reset password error:', error);
 			toast.error('Network error. Please try again.');
 		} finally {
 			setLoading(false);
@@ -96,7 +93,6 @@ export default function ResetPasswordPage() {
 
 	const isFormValid = passwordData.password.trim() !== '' && passwordData.confirmPassword.trim() !== '';
 
-	// Loading state
 	if (tokenValid === null) {
 		return (
 			<AuthLayout title="Verifying..." subtitle="Please wait while we verify your reset link">
@@ -107,7 +103,6 @@ export default function ResetPasswordPage() {
 		);
 	}
 
-	// Invalid token
 	if (tokenValid === false) {
 		return (
 			<AuthLayout title="Invalid Reset Link" subtitle="This password reset link is invalid or has expired">
@@ -143,7 +138,6 @@ export default function ResetPasswordPage() {
 		);
 	}
 
-	// Password reset success
 	if (passwordReset) {
 		return (
 			<AuthLayout title="Password Reset Success" subtitle="Your password has been reset successfully">
@@ -177,7 +171,7 @@ export default function ResetPasswordPage() {
 					<div className="relative">
 						<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
 						<Input
-							type="password"
+							type={showPassword ? 'text' : 'password'}
 							placeholder="New Password"
 							value={passwordData.password}
 							onChange={(e) =>
@@ -187,14 +181,21 @@ export default function ResetPasswordPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
 						/>
+						<button
+							type="button"
+							onClick={() => setShowPassword(!showPassword)}
+							className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white/80 transition-colors"
+						>
+							{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+						</button>
 					</div>
 
 					<div className="relative">
 						<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
 						<Input
-							type="password"
+							type={showConfirmPassword ? 'text' : 'password'}
 							placeholder="Confirm New Password"
 							value={passwordData.confirmPassword}
 							onChange={(e) =>
@@ -204,8 +205,15 @@ export default function ResetPasswordPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
 						/>
+						<button
+							type="button"
+							onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+							className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white/80 transition-colors"
+						>
+							{showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+						</button>
 					</div>
 
 					<Button

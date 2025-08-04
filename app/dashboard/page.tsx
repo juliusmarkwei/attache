@@ -1,8 +1,9 @@
 'use client';
 
 import { useQuery } from 'convex/react';
-import { BarChart3, Building2, Calendar, Download, FileText, Mail, TrendingUp, Users, X } from 'lucide-react';
-import React, { useState } from 'react';
+import { Building2, Calendar, Download, FileText, Mail, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { api } from '../../convex/_generated/api';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
@@ -32,20 +33,67 @@ function SimpleChart({ data, title, color }: { data: number[]; title: string; co
 }
 
 export default function Dashboard() {
-	const { user, loading, authChecked, handleLogout, checkAuth } = useAuth();
-
-	// Check authentication on mount
-	React.useEffect(() => {
-		if (!authChecked) {
-			checkAuth();
-		}
-	}, [authChecked, checkAuth]);
+	const { user, loading, authChecked, handleLogout } = useAuth();
+	const router = useRouter();
 
 	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as any } : 'skip');
 	const documents = useQuery(api.documents.getAllDocuments, user?.id ? { userId: user.id as any } : 'skip');
 	const gmailIntegration = useQuery(api.gmail.getGmailIntegration, user?.id ? { userId: user.id as any } : 'skip');
 
 	const [showGmailBanner, setShowGmailBanner] = useState(true);
+
+	if (companies === undefined || documents === undefined || gmailIntegration === undefined) {
+		return (
+			<DashboardLayout
+				onLogout={handleLogout}
+				user={user}
+				gmailIntegration={gmailIntegration}
+				loading={loading}
+				authChecked={authChecked}
+			>
+				<div className="space-y-6">
+					{/* Header */}
+					<div className="flex items-center justify-between">
+						<div>
+							<h1 className="text-3xl font-bold text-white">Dashboard</h1>
+							<p className="text-slate-400 mt-1">Welcome back, {user?.name}!</p>
+						</div>
+					</div>
+
+					{/* Loading skeleton for dashboard content */}
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+						{Array.from({ length: 4 }).map((_, index) => (
+							<div
+								key={index}
+								className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 animate-pulse"
+							>
+								<div className="space-y-4">
+									<div className="h-4 bg-slate-700 rounded w-3/4"></div>
+									<div className="h-8 bg-slate-700 rounded w-1/2"></div>
+									<div className="h-3 bg-slate-700 rounded w-2/3"></div>
+								</div>
+							</div>
+						))}
+					</div>
+
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+						{Array.from({ length: 2 }).map((_, index) => (
+							<div
+								key={index}
+								className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 animate-pulse"
+							>
+								<div className="space-y-4">
+									<div className="h-5 bg-slate-700 rounded w-1/2"></div>
+									<div className="h-3 bg-slate-700 rounded w-3/4"></div>
+									<div className="h-16 bg-slate-700 rounded"></div>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			</DashboardLayout>
+		);
+	}
 
 	// Calculate statistics
 	const totalCompanies = companies?.length || 0;
@@ -97,240 +145,167 @@ export default function Dashboard() {
 			.map(({ name, documents }) => ({ name, documents }));
 	};
 
-	// Show loading state while data is being fetched
-	if (!companies || !documents) {
-		return (
-			<DashboardLayout onLogout={handleLogout} gmailIntegration={gmailIntegration} user={user}>
-				<div className="space-y-6">
-					{/* Header */}
+	return (
+		<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
+			{/* Dashboard Content */}
+			<div className="space-y-6">
+				{/* Header */}
+				<div className="flex items-center justify-between">
 					<div>
 						<h1 className="text-3xl font-bold text-white">Dashboard</h1>
 						<p className="text-slate-400 mt-1">
 							Welcome back! Here's an overview of your account activity.
 						</p>
 					</div>
-
-					{/* Loading state for dashboard content */}
-					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-						{Array.from({ length: 4 }).map((_, index) => (
-							<div
-								key={index}
-								className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-6 animate-pulse"
-							>
-								<div className="space-y-4">
-									<div className="h-4 bg-slate-700 rounded w-3/4"></div>
-									<div className="h-8 bg-slate-700 rounded w-1/2"></div>
-									<div className="h-3 bg-slate-700 rounded w-2/3"></div>
-								</div>
-							</div>
-						))}
-					</div>
-
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-						{Array.from({ length: 2 }).map((_, index) => (
-							<div
-								key={index}
-								className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-6 animate-pulse"
-							>
-								<div className="space-y-4">
-									<div className="h-5 bg-slate-700 rounded w-1/2"></div>
-									<div className="h-3 bg-slate-700 rounded w-3/4"></div>
-									<div className="h-16 bg-slate-700 rounded"></div>
-								</div>
-							</div>
-						))}
-					</div>
-				</div>
-			</DashboardLayout>
-		);
-	}
-
-	return (
-		<DashboardLayout onLogout={handleLogout} gmailIntegration={gmailIntegration} user={user}>
-			<div className="space-y-6">
-				{/* Header */}
-				<div>
-					<h1 className="text-3xl font-bold text-white">Dashboard</h1>
-					<p className="text-slate-400 mt-1">Welcome back! Here's an overview of your account activity.</p>
 				</div>
 
-				{/* Gmail Integration Status */}
-				{!gmailIntegration && showGmailBanner && (
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700 relative">
-						<CardHeader>
-							<div className="flex items-center justify-between">
-								<div className="flex items-center">
-									<Mail className="h-5 w-5 mr-2 text-[#FFB900]" />
-									<CardTitle className="text-white">Gmail Integration</CardTitle>
-								</div>
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => setShowGmailBanner(false)}
-									className="text-slate-400 hover:text-white hover:bg-slate-700/50"
-								>
-									<X className="h-4 w-4" />
-								</Button>
-							</div>
-							<CardDescription className="text-slate-300">
-								Set up automatic email processing and document organization
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div className="flex items-center justify-between">
+				{/* Gmail Integration Active Banner */}
+				{gmailIntegration && (
+					<div className="mb-6 p-4 bg-green-600/20 border border-green-500/30 rounded-lg">
+						<div className="flex items-center justify-between">
+							<div className="flex items-center space-x-3">
+								<Mail className="h-6 w-6 text-green-400" />
 								<div>
-									<p className="text-slate-200 text-sm">
-										Connect your Gmail account to automatically process emails and organize
-										documents by company.
+									<h3 className="text-green-400 font-semibold">Gmail Integration Active</h3>
+									<p className="text-green-300 text-sm">
+										Your Gmail account is connected and processing emails automatically. New emails
+										with attachments are automatically processed and organized by company.
 									</p>
 								</div>
-								<Button
-									onClick={() => (window.location.href = '/gmail-setup')}
-									variant="outline"
-									size="sm"
-									className="border-[#FFB900] text-[#FFB900] hover:bg-[#FFB900]/10"
-								>
-									Setup Gmail
-								</Button>
 							</div>
-						</CardContent>
-					</Card>
-				)}
-
-				{gmailIntegration && showGmailBanner && (
-					<Card className="bg-green-500/10 border-green-500/20 backdrop-blur-sm">
-						<CardHeader>
-							<div className="flex items-center justify-between">
-								<div className="flex items-center">
-									<Mail className="h-5 w-5 mr-2 text-green-400" />
-									<CardTitle className="text-green-400">Gmail Integration Active</CardTitle>
-								</div>
+							<div className="flex items-center space-x-2">
 								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => setShowGmailBanner(false)}
-									className="text-slate-400 hover:text-white hover:bg-slate-700/50"
-								>
-									<X className="h-4 w-4" />
-								</Button>
-							</div>
-							<CardDescription className="text-green-300">
-								Your Gmail account is connected and processing emails automatically
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div className="flex items-center justify-between">
-								<div>
-									<p className="text-green-200 text-sm">
-										New emails with attachments are automatically processed and organized by
-										company.
-									</p>
-								</div>
-								<Button
-									onClick={() => (window.location.href = '/gmail-setup')}
-									variant="outline"
-									size="sm"
-									className="border-green-400 text-green-400 hover:bg-green-400/10"
+									onClick={() => router.push('/gmail-setup')}
+									className="bg-green-600 text-white hover:bg-green-700"
 								>
 									Manage Integration
 								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => setShowGmailBanner(false)}
+									className="text-green-400 hover:text-green-300 hover:bg-green-600/20"
+								>
+									<X className="h-4 w-4" />
+								</Button>
 							</div>
-						</CardContent>
-					</Card>
+						</div>
+					</div>
 				)}
 
-				{/* Key Statistics */}
+				{/* Gmail Integration Banner */}
+				{showGmailBanner && !gmailIntegration && (
+					<div className="mb-6 p-4 bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-lg">
+						<div className="flex items-center justify-between">
+							<div className="flex items-center space-x-3">
+								<Mail className="h-6 w-6 text-[#FFB900]" />
+								<div>
+									<h3 className="text-white font-semibold">Connect Gmail</h3>
+									<p className="text-slate-300 text-sm">
+										Automatically process emails and extract documents
+									</p>
+								</div>
+							</div>
+							<div className="flex items-center space-x-2">
+								<Button
+									onClick={() => router.push('/gmail-setup')}
+									className="bg-[#FFB900] text-slate-900 hover:bg-[#FFB900]/90"
+								>
+									Connect Gmail
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => setShowGmailBanner(false)}
+									className="text-slate-400 hover:text-white hover:bg-slate-700/50"
+								>
+									<X className="h-4 w-4" />
+								</Button>
+							</div>
+						</div>
+					</div>
+				)}
+
+				{/* Statistics Cards */}
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
+					<Card className="bg-slate-800/50 border-slate-700">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium text-slate-100">Total Companies</CardTitle>
-							<Building2 className="h-4 w-4 text-slate-400" />
+							<CardTitle className="text-sm font-medium text-slate-400">Total Companies</CardTitle>
+							<Building2 className="h-4 w-4 text-[#FFB900]" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold text-slate-100">{totalCompanies}</div>
-							<p className="text-xs text-slate-400">Companies in your account</p>
+							<div className="text-2xl font-bold text-white">{totalCompanies}</div>
+							<p className="text-xs text-slate-400 mt-1">Companies in your account</p>
 						</CardContent>
 					</Card>
 
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
+					<Card className="bg-slate-800/50 border-slate-700">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium text-slate-100">Total Documents</CardTitle>
-							<FileText className="h-4 w-4 text-slate-400" />
+							<CardTitle className="text-sm font-medium text-slate-400">Total Documents</CardTitle>
+							<FileText className="h-4 w-4 text-[#FFB900]" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold text-slate-100">{totalDocuments}</div>
-							<p className="text-xs text-slate-400">Documents processed</p>
+							<div className="text-2xl font-bold text-white">{totalDocuments}</div>
+							<p className="text-xs text-slate-400 mt-1">Documents processed</p>
 						</CardContent>
 					</Card>
 
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
+					<Card className="bg-slate-800/50 border-slate-700">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium text-slate-100">Storage Used</CardTitle>
-							<Download className="h-4 w-4 text-slate-400" />
+							<CardTitle className="text-sm font-medium text-slate-400">Storage Used</CardTitle>
+							<Download className="h-4 w-4 text-[#FFB900]" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold text-slate-100">
+							<div className="text-2xl font-bold text-white">
 								{(totalSize / (1024 * 1024)).toFixed(1)} MB
 							</div>
-							<p className="text-xs text-slate-400">Total storage used</p>
+							<p className="text-xs text-slate-400 mt-1">Total storage used</p>
 						</CardContent>
 					</Card>
 
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
+					<Card className="bg-slate-800/50 border-slate-700">
 						<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-							<CardTitle className="text-sm font-medium text-slate-100">Recent Activity</CardTitle>
-							<TrendingUp className="h-4 w-4 text-slate-400" />
+							<CardTitle className="text-sm font-medium text-slate-400">Recent Activity</CardTitle>
+							<Calendar className="h-4 w-4 text-[#FFB900]" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold text-slate-100">{recentDocuments}</div>
-							<p className="text-xs text-slate-400">Documents this week</p>
+							<div className="text-2xl font-bold text-white">{recentDocuments}</div>
+							<p className="text-xs text-slate-400 mt-1">Documents this week</p>
 						</CardContent>
 					</Card>
 				</div>
 
-				{/* Charts Section */}
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 					{/* Document Activity Chart */}
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
+					<Card className="bg-slate-800/50 border-slate-700">
 						<CardHeader>
-							<CardTitle className="text-slate-100 flex items-center">
-								<BarChart3 className="h-5 w-5 mr-2" />
-								Document Activity (Last 7 Days)
-							</CardTitle>
+							<CardTitle className="text-white">Document Activity (Last 7 Days)</CardTitle>
 							<CardDescription className="text-slate-400">
 								Number of documents uploaded each day
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
 							<SimpleChart data={generateChartData()} title="Documents uploaded" color="#FFB900" />
-							<div className="flex justify-between text-xs text-slate-400 mt-2">
-								{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => (
-									<span key={index}>{day}</span>
-								))}
-							</div>
 						</CardContent>
 					</Card>
 
-					{/* Company Activity */}
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
+					{/* Company Activity Chart */}
+					<Card className="bg-slate-800/50 border-slate-700">
 						<CardHeader>
-							<CardTitle className="text-slate-100 flex items-center">
-								<Building2 className="h-5 w-5 mr-2" />
-								Top Companies by Documents
-							</CardTitle>
+							<CardTitle className="text-white">Top Companies by Documents</CardTitle>
 							<CardDescription className="text-slate-400">
 								Companies with the most documents
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<div className="space-y-3">
+							<div className="space-y-4">
 								{generateCompanyData().map((company, index) => (
 									<div key={index} className="flex items-center justify-between">
 										<div className="flex items-center space-x-3">
-											<div className="w-2 h-2 rounded-full bg-[#FFB900]" />
-											<span className="text-slate-200 text-sm">{company.name}</span>
+											<div className="w-2 h-2 bg-[#FFB900] rounded-full" />
+											<span className="text-sm text-white font-medium">{company.name}</span>
 										</div>
-										<span className="text-slate-400 text-sm">{company.documents} docs</span>
+										<span className="text-sm text-slate-400">{company.documents} docs</span>
 									</div>
 								))}
 							</div>
@@ -338,90 +313,116 @@ export default function Dashboard() {
 					</Card>
 				</div>
 
-				{/* Quick Actions */}
-				<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
+				{/* Recent Documents */}
+				<Card className="bg-slate-800/50 border-slate-700">
 					<CardHeader>
-						<CardTitle className="text-slate-100">Quick Actions</CardTitle>
-						<CardDescription className="text-slate-400">Common tasks and shortcuts</CardDescription>
+						<CardTitle className="text-white">Recent Documents</CardTitle>
+						<CardDescription className="text-slate-400">
+							Latest document uploads and company updates
+						</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-							<Button
-								onClick={() => (window.location.href = '/dashboard/companies')}
-								variant="outline"
-								className="border-slate-600 text-slate-200 hover:bg-slate-700 h-auto p-4 flex-col"
-							>
-								<Building2 className="h-6 w-6 mb-2" />
-								<span className="font-medium">View Companies</span>
-								<span className="text-xs text-slate-400 mt-1">Manage your companies</span>
-							</Button>
-							<Button
-								onClick={() => (window.location.href = '/dashboard/documents')}
-								variant="outline"
-								className="border-slate-600 text-slate-200 hover:bg-slate-700 h-auto p-4 flex-col"
-							>
-								<FileText className="h-6 w-6 mb-2" />
-								<span className="font-medium">Browse Documents</span>
-								<span className="text-xs text-slate-400 mt-1">Search and filter documents</span>
-							</Button>
-							<Button
-								onClick={() => (window.location.href = '/dashboard/settings')}
-								variant="outline"
-								className="border-slate-600 text-slate-200 hover:bg-slate-700 h-auto p-4 flex-col"
-							>
-								<Users className="h-6 w-6 mb-2" />
-								<span className="font-medium">Account Settings</span>
-								<span className="text-xs text-slate-400 mt-1">Manage your profile</span>
-							</Button>
+						<div className="space-y-4">
+							{documents && documents.length > 0 ? (
+								documents.slice(0, 5).map((document) => (
+									<div
+										key={document._id}
+										className="flex items-center space-x-4 p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition-colors"
+									>
+										<FileText className="h-5 w-5 text-[#FFB900]" />
+										<div className="flex-1">
+											<p className="text-sm font-medium text-white">{document.originalName}</p>
+											<p className="text-xs text-slate-400">
+												Uploaded to{' '}
+												{companies?.find((c) => c._id === document.companyId)?.name ||
+													'Unknown Company'}
+											</p>
+										</div>
+										<div className="text-right">
+											<p className="text-xs text-slate-400">
+												{new Date(document.uploadedAt).toLocaleDateString()}
+											</p>
+											<p className="text-xs text-slate-500">
+												{(document.size / (1024 * 1024)).toFixed(1)} MB
+											</p>
+										</div>
+									</div>
+								))
+							) : (
+								<div className="text-center py-8">
+									<FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+									<p className="text-slate-400 text-sm">No documents uploaded yet</p>
+									<p className="text-slate-500 text-xs mt-1">
+										Documents will appear here once you start uploading
+									</p>
+								</div>
+							)}
 						</div>
 					</CardContent>
 				</Card>
 
-				{/* Recent Activity */}
-				{documents && documents.length > 0 && (
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
-						<CardHeader>
-							<CardTitle className="text-slate-100 flex items-center">
-								<Calendar className="h-5 w-5 mr-2" />
-								Recent Documents
-							</CardTitle>
-							<CardDescription className="text-slate-400">
-								Latest documents uploaded to your account
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<div className="space-y-3">
-								{documents
-									.sort((a, b) => b.uploadedAt - a.uploadedAt)
-									.slice(0, 5)
-									.map((doc) => {
-										const company = companies?.find((c) => c._id === doc.companyId);
-										return (
-											<div
-												key={doc._id}
-												className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg"
-											>
-												<div className="flex items-center space-x-3">
-													<FileText className="h-4 w-4 text-[#FFB900]" />
-													<div>
-														<p className="text-slate-200 text-sm font-medium">
-															{doc.originalName}
-														</p>
-														<p className="text-slate-400 text-xs">
-															{company?.name} • {(doc.size / (1024 * 1024)).toFixed(2)} MB
-														</p>
-													</div>
-												</div>
-												<span className="text-slate-400 text-xs">
-													{new Date(doc.uploadedAt).toLocaleDateString()}
-												</span>
-											</div>
-										);
-									})}
-							</div>
-						</CardContent>
-					</Card>
-				)}
+				{/* Quick Actions */}
+				<Card className="bg-slate-800/50 border-slate-700">
+					<CardHeader>
+						<CardTitle className="text-white">Quick Actions</CardTitle>
+						<CardDescription className="text-slate-400">Common tasks and shortcuts</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+							<Button
+								onClick={() => router.push('/dashboard/companies')}
+								variant="outline"
+								className="h-24 flex flex-col items-center justify-center space-y-3 border-slate-700 hover:bg-slate-700/50 hover:border-[#FFB900]/50 transition-all duration-200 group p-15"
+							>
+								<div className="p-3 bg-[#FFB900]/10 rounded-full group-hover:bg-[#FFB900]/20 transition-colors">
+									<Building2 className="h-6 w-6 text-[#FFB900]" />
+								</div>
+								<div className="text-center">
+									<span className="text-sm font-medium text-white block">View Companies</span>
+									<span className="text-xs text-slate-400 block">Manage your companies</span>
+								</div>
+							</Button>
+							<Button
+								onClick={() => router.push('/dashboard/documents')}
+								variant="outline"
+								className="h-24 flex flex-col items-center justify-center space-y-3 border-slate-700 hover:bg-slate-700/50 hover:border-[#FFB900]/50 transition-all duration-200 group p-15"
+							>
+								<div className="p-3 bg-[#FFB900]/10 rounded-full group-hover:bg-[#FFB900]/20 transition-colors">
+									<FileText className="h-6 w-6 text-[#FFB900]" />
+								</div>
+								<div className="text-center">
+									<span className="text-sm font-medium text-white block">Browse Documents</span>
+									<span className="text-xs text-slate-400 block">Search and filter documents</span>
+								</div>
+							</Button>
+							<Button
+								onClick={() => router.push('/dashboard/settings')}
+								variant="outline"
+								className="h-24 flex flex-col items-center justify-center space-y-3 border-slate-700 hover:bg-slate-700/50 hover:border-[#FFB900]/50 transition-all duration-200 group p-15"
+							>
+								<div className="p-3 bg-[#FFB900]/10 rounded-full group-hover:bg-[#FFB900]/20 transition-colors">
+									<svg
+										className="h-6 w-6 text-[#FFB900]"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											strokeWidth={2}
+											d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+										/>
+									</svg>
+								</div>
+								<div className="text-center">
+									<span className="text-sm font-medium text-white block">Account Settings</span>
+									<span className="text-xs text-slate-400 block">Manage your profile</span>
+								</div>
+							</Button>
+						</div>
+					</CardContent>
+				</Card>
 			</div>
 		</DashboardLayout>
 	);

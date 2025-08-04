@@ -4,17 +4,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { api } from '../../../../convex/_generated/api';
 import { NotificationService } from '../../../services/notificationService';
 
-// Gmail API setup
 const gmail = google.gmail('v1');
 
-// Initialize Gmail API with OAuth2 credentials
 const auth = new google.auth.OAuth2(
 	process.env.GOOGLE_CLIENT_ID,
 	process.env.GOOGLE_CLIENT_SECRET,
 	process.env.GOOGLE_REDIRECT_URI,
 );
 
-// Validate environment variables
 function validateEnvironment() {
 	if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 		throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables are required');
@@ -23,38 +20,28 @@ function validateEnvironment() {
 
 export async function POST(request: NextRequest) {
 	try {
-		// Validate environment
 		validateEnvironment();
 
 		const body = await request.json();
-		console.log('📧 Gmail webhook received');
 
-		// Handle Gmail push notification from Pub/Sub
 		if (body.message && body.message.data) {
 			try {
-				// Decode the base64 data from Pub/Sub
 				const decodedData = Buffer.from(body.message.data, 'base64').toString('utf-8');
 				const gmailData = JSON.parse(decodedData);
 
 				if (gmailData.historyId) {
 					await processGmailHistory(gmailData.historyId);
-				} else {
-					console.log('⚠️ No historyId found in decoded Gmail data');
 				}
 			} catch (error) {
-				console.error('❌ Error decoding Pub/Sub message:', error);
+				// Handle error silently
+				console.error('❌ Error processing Gmail webhook:', error);
 			}
 		} else if (body.historyId) {
-			// Fallback for direct webhook (not through Pub/Sub)
-			console.log(`🔄 Processing Gmail history: ${body.historyId}`);
 			await processGmailHistory(body.historyId);
-		} else {
-			console.log('⚠️ No valid Gmail data found in webhook payload');
 		}
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
-		console.error('❌ Gmail webhook error:', error);
 		return NextResponse.json(
 			{
 				error: 'Internal server error',
@@ -65,22 +52,18 @@ export async function POST(request: NextRequest) {
 	}
 }
 
-// Track processed messages to avoid duplicates
 const processedMessages = new Set<string>();
 
-// Clean up old processed messages (keep only last 1000)
 function cleanupProcessedMessages() {
 	if (processedMessages.size > 1000) {
 		const messagesArray = Array.from(processedMessages);
-		const toRemove = messagesArray.slice(0, 500); // Remove oldest 500
+		const toRemove = messagesArray.slice(0, 500);
 		toRemove.forEach((id) => processedMessages.delete(id));
-		console.log(`🧹 Cleaned up ${toRemove.length} old processed messages`);
 	}
 }
 
 async function processGmailHistory(historyId: string) {
 	try {
-		// Get active Gmail integrations from database with retry logic
 		let activeIntegrations: any[] = [];
 		let retryCount = 0;
 		const maxRetries = 3;
@@ -89,13 +72,11 @@ async function processGmailHistory(historyId: string) {
 			try {
 				const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 				activeIntegrations = await convexClient.query(api.gmail.getActiveGmailIntegrations);
-				break; // Success, exit retry loop
+				break;
 			} catch (error) {
 				retryCount++;
-				console.log(`🔄 Convex connection attempt ${retryCount}/${maxRetries} failed:`, error);
 
 				if (retryCount >= maxRetries) {
-					console.error('❌ Failed to connect to Convex after all retries');
 					return;
 				}
 
@@ -107,24 +88,18 @@ async function processGmailHistory(historyId: string) {
 		// Process each active integration
 		for (const integration of activeIntegrations) {
 			try {
-				// Set credentials for this integration
 				auth.setCredentials({
 					access_token: integration.accessToken,
 					refresh_token: integration.refreshToken,
 				});
 
-				// Check if the access token is still valid
 				try {
 					await gmail.users.getProfile({ auth: auth, userId: 'me' });
 				} catch (tokenError) {
-					console.log('🔄 Access token expired, refreshing...');
-
 					if (integration.refreshToken) {
 						try {
 							const { credentials } = await auth.refreshAccessToken();
-							console.log('✅ Successfully refreshed access token');
 
-							// Update the stored tokens in the database
 							const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 							await convexClient.mutation(api.gmail.updateGmailIntegration, {
 								integrationId: integration._id,
@@ -133,41 +108,28 @@ async function processGmailHistory(historyId: string) {
 								expiryDate: credentials.expiry_date || Date.now() + 3600000,
 							});
 						} catch (refreshError) {
-							console.error('❌ Failed to refresh token:', refreshError);
-							continue; // Skip this integration if refresh fails
+							continue;
 						}
 					} else {
-						console.error('❌ No refresh token available');
-						continue; // Skip this integration
+						continue;
 					}
 				}
-
-				// Get Gmail history for this integration
-				console.log(`🔍 Fetching Gmail history starting from: ${historyId}`);
 
 				const historyResponse = await gmail.users.history.list({
 					auth: auth,
 					userId: 'me',
 					startHistoryId: historyId,
-					maxResults: 100, // Get more results
+					maxResults: 100,
 				});
 
 				const history = historyResponse.data.history;
 				if (!history || history.length === 0) {
-					console.log('📭 No history found for historyId:', historyId);
-					console.log('📊 History response:', {
-						historyId,
-						nextPageToken: historyResponse.data.nextPageToken,
-					});
-
-					// Fallback: Get recent messages instead
-					console.log('🔄 Trying to get recent messages as fallback...');
 					try {
 						const messagesResponse = await gmail.users.messages.list({
 							auth: auth,
 							userId: 'me',
 							maxResults: 10,
-							q: 'is:unread', // Get unread messages
+							q: 'is:unread',
 						});
 
 						const messages = messagesResponse.data.messages;
@@ -177,11 +139,10 @@ async function processGmailHistory(historyId: string) {
 									await processEmail(message.id, integration.userId);
 								}
 							}
-						} else {
-							console.log('📭 No recent messages found');
 						}
 					} catch (fallbackError) {
-						console.error('❌ Error in fallback message processing:', fallbackError);
+						// Handle error silently
+						console.error('❌ Error processing Gmail history for integration:', fallbackError);
 					}
 					return;
 				}
@@ -205,7 +166,6 @@ async function processGmailHistory(historyId: string) {
 }
 
 async function processEmail(messageId: string, userId?: string) {
-	// Check if this message has already been processed
 	if (processedMessages.has(messageId)) {
 		console.log(`🔄 Skipping already processed message: ${messageId}`);
 		return;
@@ -235,23 +195,13 @@ async function processEmail(messageId: string, userId?: string) {
 		// Extract clean email address from "Name <email@domain.com>" format
 		const cleanEmail = extractEmailFromString(from);
 
-		console.log(`📧 Processing email: "${subject}" from ${from} (clean: ${cleanEmail})`);
-
-		// Extract company name from subject or from email
 		let companyName = extractCompanyFromSubject(subject);
 
-		// If no company name found in subject, try to extract from "From" field
 		if (!companyName) {
 			companyName = extractCompanyFromEmail(from);
-			if (companyName) {
-				console.log(`🏢 Extracted company name from email: ${companyName}`);
-			}
-		} else {
-			console.log(`🏢 Extracted company name from subject: ${companyName}`);
 		}
 
 		if (!companyName) {
-			console.log('❌ No company name found in subject or email:', { subject, from });
 			return;
 		}
 
@@ -264,12 +214,10 @@ async function processEmail(messageId: string, userId?: string) {
 		});
 
 		if (!company) {
-			console.log(`🏗️ Creating new company: ${companyName}`);
-			// Create new company
 			const companyId = await convexClient.mutation(api.companies.createCompany, {
 				name: companyName,
 				email: cleanEmail,
-				ownerId: userId as any, // Associate with the user
+				ownerId: userId as any,
 				metadata: {
 					source: 'gmail',
 					firstEmailSubject: subject,
@@ -280,39 +228,30 @@ async function processEmail(messageId: string, userId?: string) {
 				companyId,
 			});
 		} else {
-			console.log(`✅ Found existing company: ${company.name}`);
-			// Update last email received timestamp
 			await convexClient.mutation(api.companies.updateCompany, {
 				companyId: company._id,
 			});
 		}
 
 		if (!company) {
-			console.error('❌ Failed to create or find company');
 			return;
 		}
 
-		// Add notification for new email
 		if (userId) {
 			try {
 				await NotificationService.addEmailNotification(userId, subject, company.name);
-				console.log(`🔔 Email notification added for user: ${userId}`);
 			} catch (error) {
-				console.error('❌ Error adding email notification:', error);
+				// Handle error silently
 			}
 		}
 
 		// Process attachments
 		await processAttachments(message, company._id, cleanEmail, userId);
 
-		// Mark this message as processed
 		processedMessages.add(messageId);
-		console.log(`✅ Successfully processed message: ${messageId}`);
-
-		// Clean up old processed messages
 		cleanupProcessedMessages();
 	} catch (error) {
-		console.error('❌ Error processing email:', error);
+		// Handle error silently
 	}
 }
 
@@ -432,46 +371,31 @@ async function processAttachments(message: any, companyId: string, uploadedBy: s
 				}
 			}
 		}
-
-		if (attachmentCount === 0) {
-			console.log('📭 No attachments found in email');
-		} else {
-			console.log(`✅ Processed ${attachmentCount} attachment(s)`);
-		}
 	} catch (error) {
-		console.error('❌ Error processing attachments:', error);
+		// Handle error silently
 	}
 }
 
 async function processAttachment(part: any, companyId: string, uploadedBy: string, messageId: string, userId?: string) {
 	try {
-		console.log(`📄 Processing attachment: ${part.filename} (${part.mimeType})`);
-
-		// Get attachment data
 		const attachmentResponse = await gmail.users.messages.attachments.get({
 			auth: auth,
 			userId: 'me',
-			messageId: messageId, // Use the passed messageId parameter
+			messageId: messageId,
 			id: part.body.attachmentId,
 		});
 
 		const attachmentData = attachmentResponse.data.data;
 		if (!attachmentData) {
-			console.log('⚠️ No attachment data found');
 			return;
 		}
 
-		// Decode base64 attachment
 		const buffer = Buffer.from(attachmentData, 'base64');
-		console.log(`📦 Attachment size: ${(buffer.length / 1024).toFixed(2)} KB`);
 
-		// Initialize Convex client
 		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-		// Generate upload URL and upload file
 		const uploadUrl = await convexClient.mutation(api.files.generateUploadUrl);
 
-		// Upload file to the URL
 		const uploadResponse = await fetch(uploadUrl, {
 			method: 'POST',
 			headers: {
@@ -485,10 +409,8 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 		}
 
 		const { storageId } = await uploadResponse.json();
-		console.log(`☁️ File uploaded to storage: ${storageId}`);
 
-		// Add document to database
-		const documentId = await convexClient.mutation(api.documents.addDocumentToCompany, {
+		await convexClient.mutation(api.documents.addDocumentToCompany, {
 			companyId: companyId as any,
 			filename: part.filename,
 			originalName: part.filename,
@@ -503,27 +425,20 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 			},
 		});
 
-		console.log(`✅ Document added to database: ${documentId}`);
-
-		// Add notification for processed document
 		if (userId) {
 			try {
-				// Get company name for notification
 				const company = await convexClient.query(api.companies.getCompanyById, {
 					companyId: companyId as any,
 				});
 
 				if (company) {
 					await NotificationService.addDocumentNotification(userId, part.filename, company.name);
-					console.log(`🔔 Document notification added for user: ${userId}`);
 				}
 			} catch (error) {
-				console.error('❌ Error adding document notification:', error);
+				// Handle error silently
 			}
 		}
-
-		console.log(`📄 Successfully processed: ${part.filename}`);
 	} catch (error) {
-		console.error(`❌ Error processing attachment ${part.filename}:`, error);
+		// Handle error silently
 	}
 }

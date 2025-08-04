@@ -158,14 +158,30 @@ export async function POST(request: NextRequest) {
 
 			// Check if it's a topic/push notification issue
 			if (watchError instanceof Error && watchError.message.includes('topic')) {
-				return NextResponse.json(
-					{
-						error: 'Push notification setup failed',
-						message: 'The Gmail API topic is not configured. This is expected for local development.',
-						details: 'For production, you need to set up Google Cloud Pub/Sub topics.',
-					},
-					{ status: 400 },
-				);
+				console.log('📧 Topic not configured, but still storing integration for local development');
+
+				// For local development, still store the integration even if push notifications fail
+				const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+				await convex.mutation(api.gmail.createGmailIntegration, {
+					userId: finalUserId,
+					accessToken: auth.credentials.access_token!,
+					refreshToken: auth.credentials.refresh_token || refresh_token || '',
+					expiryDate: auth.credentials.expiry_date || Date.now() + 3600000,
+					historyId: undefined,
+					subscriptionExpiration: undefined,
+				});
+
+				// Get the profile for the response
+				const profileResponse = await gmail.users.getProfile({ userId: 'me' });
+
+				return NextResponse.json({
+					success: true,
+					message:
+						'Gmail integration configured successfully (push notifications disabled for local development)',
+					email: profileResponse.data.emailAddress,
+					historyId: 'Local Development',
+					expiration: 'Local Development',
+				});
 			}
 
 			return NextResponse.json(

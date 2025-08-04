@@ -41,7 +41,16 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'Login failed' }, { status: 400 });
 		}
 	} catch (error: any) {
-		console.error('Login error:', error);
-		return NextResponse.json({ error: error.message || 'Failed to login' }, { status: 500 });
+		const errorMessage = error.message || 'Failed to login';
+
+		if (errorMessage.includes('User not found')) {
+			return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+		} else if (errorMessage.includes('Invalid password')) {
+			return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+		} else if (errorMessage.includes('Please verify your email')) {
+			return NextResponse.json({ error: 'Please verify your email before signing in' }, { status: 401 });
+		} else {
+			return NextResponse.json({ error: 'Login failed. Please try again.' }, { status: 500 });
+		}
 	}
 }

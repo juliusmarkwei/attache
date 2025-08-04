@@ -26,6 +26,10 @@ export default function DashboardLayout({ children, onLogout, gmailIntegration, 
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 	const [showNotifications, setShowNotifications] = useState(false);
 
+	if (!user) {
+		return null;
+	}
+
 	const handleNotificationClick = async (notification: any) => {
 		// Navigate to documents page
 		router.push('/dashboard/documents');
@@ -102,7 +106,7 @@ export default function DashboardLayout({ children, onLogout, gmailIntegration, 
 												variant="ghost"
 												size="sm"
 												onClick={() => setShowNotifications(false)}
-												className="text-slate-400 hover:text-white h-6 w-6 p-0"
+												className="text-slate-400 hover:text-white p-1"
 											>
 												<X className="h-4 w-4" />
 											</Button>
@@ -111,51 +115,57 @@ export default function DashboardLayout({ children, onLogout, gmailIntegration, 
 									<div className="max-h-64 overflow-y-auto">
 										{notifications.length === 0 ? (
 											<div className="p-4 text-center">
-												<p className="text-sm text-slate-400">No new notifications</p>
+												<p className="text-slate-400 text-sm">No notifications</p>
 											</div>
 										) : (
-											<div className="p-2">
-												{notifications.slice(0, 10).map((notification) => (
-													<div
-														key={notification.id}
-														onClick={() => handleNotificationClick(notification)}
-														className="p-3 bg-slate-700/50 rounded-lg hover:bg-slate-600/50 transition-colors cursor-pointer mb-2"
-													>
-														<div className="flex items-start space-x-3">
-															<div className="flex-shrink-0">
-																{notification.type === 'email' && (
-																	<Bell className="h-4 w-4 text-blue-400" />
-																)}
-																{notification.type === 'document' && (
-																	<Bell className="h-4 w-4 text-green-400" />
-																)}
-																{notification.type === 'system' && (
-																	<Bell className="h-4 w-4 text-yellow-400" />
-																)}
-															</div>
-															<div className="flex-1 min-w-0">
-																<p className="text-sm font-medium text-white truncate">
-																	{notification.title}
-																</p>
-																<p className="text-xs text-slate-300 truncate mt-1">
-																	{notification.message}
-																</p>
-																<p className="text-xs text-slate-400 mt-2">
-																	{notification.timestamp.toLocaleTimeString()}
-																</p>
-															</div>
+											notifications.map((notification: any) => (
+												<div
+													key={notification._id}
+													className="p-3 border-b border-slate-700 last:border-b-0 hover:bg-slate-700/50 cursor-pointer transition-colors"
+													onClick={() => handleNotificationClick(notification)}
+												>
+													<div className="flex items-start space-x-3">
+														<div className="w-2 h-2 bg-[#FFB900] rounded-full mt-2 flex-shrink-0" />
+														<div className="flex-1 min-w-0">
+															<p className="text-sm text-white font-medium">
+																{notification.title}
+															</p>
+															<p className="text-xs text-slate-400 mt-1">
+																{notification.message}
+															</p>
+															<p className="text-xs text-slate-500 mt-2">
+																{new Date(notification.createdAt).toLocaleString()}
+															</p>
 														</div>
 													</div>
-												))}
-											</div>
+												</div>
+											))
 										)}
 									</div>
+									{notifications.length > 0 && (
+										<div className="p-3 border-t border-slate-700">
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={async () => {
+													if (user?.id) {
+														await clearNotifications(user.id);
+													}
+													setShowNotifications(false);
+												}}
+												className="w-full text-slate-400 hover:text-white"
+											>
+												Clear all
+											</Button>
+										</div>
+									)}
 								</div>
 							)}
 						</div>
 					</div>
 
-					{children}
+					{/* Page Content */}
+					<div className="pt-16">{children}</div>
 				</main>
 			</div>
 		</div>

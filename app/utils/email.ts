@@ -19,7 +19,8 @@ export async function sendVerificationEmail({
 	userName: string;
 }): Promise<boolean> {
 	try {
-		const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+		const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').trim();
+		const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
 
 		const mailOptions = {
 			from: process.env.EMAIL_USER,
@@ -81,7 +82,8 @@ export async function sendPasswordResetEmail({
 	userName: string;
 }): Promise<boolean> {
 	try {
-		const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+		const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').trim();
+		const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
 		const mailOptions = {
 			from: process.env.EMAIL_USER,

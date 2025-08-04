@@ -30,10 +30,8 @@ export class NotificationService {
 				userId: fullNotification.userId as Id<'users'>,
 			});
 
-			console.log('✅ Notification added:', fullNotification.title);
 			return fullNotification;
 		} catch (error) {
-			console.error('❌ Error adding notification:', error);
 			throw error;
 		}
 	}

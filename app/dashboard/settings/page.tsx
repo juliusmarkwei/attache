@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { Camera, Mail, Save, User, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -10,18 +10,13 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-
 import { useAuth } from '../../hooks/useAuth';
+import { useAuthStore } from '../../stores/authStore';
 
 export default function SettingsPage() {
-	const { user, loading, authChecked, handleLogout, checkAuth } = useAuth();
-
-	// Check authentication on mount
-	React.useEffect(() => {
-		if (!authChecked) {
-			checkAuth();
-		}
-	}, [authChecked, checkAuth]);
+	const { user, handleLogout } = useAuth();
+	const { setUser } = useAuthStore();
+	const gmailIntegration = useQuery(api.gmail.getGmailIntegration, user?.id ? { userId: user.id as any } : 'skip');
 
 	const [name, setName] = useState(user?.name || '');
 	const [email, setEmail] = useState(user?.email || '');
@@ -29,7 +24,6 @@ export default function SettingsPage() {
 	const [isUploading, setIsUploading] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
-	// Update form when user data changes
 	React.useEffect(() => {
 		if (user) {
 			setName(user.name || '');
@@ -43,15 +37,36 @@ export default function SettingsPage() {
 	const handleSave = async () => {
 		if (!user?.id) return;
 
+		// Validate required fields
+		if (!name.trim()) {
+			toast.error('Name is required');
+			return;
+		}
+
+		console.log('Saving profile with data:', {
+			userId: user.id,
+			name: name.trim(),
+			profilePicture,
+		});
+
 		try {
 			await updateProfile({
 				userId: user.id as any,
-				name,
-				email,
+				name: name.trim(),
+				profilePicture,
+				// Don't send email since it's disabled
+			});
+
+			// Update the user in the auth store with new data
+			setUser({
+				...user,
+				name: name.trim(),
 				profilePicture,
 			});
+
 			toast.success('Profile updated successfully');
 		} catch (error) {
+			console.error('Profile update error:', error);
 			toast.error('Failed to update profile');
 		}
 	};
@@ -60,13 +75,11 @@ export default function SettingsPage() {
 		const file = event.target.files?.[0];
 		if (!file) return;
 
-		// Validate file type
 		if (!file.type.startsWith('image/')) {
 			toast.error('Please select an image file');
 			return;
 		}
 
-		// Validate file size (max 5MB)
 		if (file.size > 5 * 1024 * 1024) {
 			toast.error('File size must be less than 5MB');
 			return;
@@ -74,16 +87,48 @@ export default function SettingsPage() {
 
 		setIsUploading(true);
 		try {
-			// Convert to base64 for now (in production, you'd upload to a CDN)
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				const result = e.target?.result as string;
-				setProfilePicture(result);
-				setIsUploading(false);
-				toast.success('Profile picture updated');
-			};
-			reader.readAsDataURL(file);
+			// Generate upload URL from Convex
+			const uploadUrl = await fetch('/api/files/generate-upload-url').then((res) => res.json());
+
+			if (!uploadUrl.url) {
+				throw new Error('Failed to generate upload URL');
+			}
+
+			// Upload file to Convex storage
+			const uploadResponse = await fetch(uploadUrl.url, {
+				method: 'POST',
+				headers: {
+					'Content-Type': file.type,
+				},
+				body: file,
+			});
+
+			if (!uploadResponse.ok) {
+				throw new Error('Failed to upload file');
+			}
+
+			const { storageId } = await uploadResponse.json();
+
+			// Save file metadata
+			await fetch('/api/files/save-metadata', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					storageId,
+					filename: file.name,
+					contentType: file.type,
+					size: file.size,
+				}),
+			});
+
+			// Update profile picture with storage ID
+			setProfilePicture(storageId);
+			setIsUploading(false);
+			toast.success('Profile picture uploaded successfully. Click "Save Changes" to update your profile.');
 		} catch (error) {
+			console.error('Upload error:', error);
 			setIsUploading(false);
 			toast.error('Failed to upload image');
 		}
@@ -94,8 +139,44 @@ export default function SettingsPage() {
 		toast.success('Profile picture removed');
 	};
 
+	// Function to get profile picture URL
+	const getProfilePictureUrl = (profilePicture: string | undefined) => {
+		if (!profilePicture) return null;
+
+		// If it's a data URL (old format), return as is
+		if (profilePicture.startsWith('data:')) {
+			return profilePicture;
+		}
+
+		// If it's a storage ID, construct the URL
+		return `/api/files/get-url?storageId=${profilePicture}`;
+	};
+
+	// State to store the resolved image URL
+	const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+	// Fetch the image URL when profile picture changes
+	React.useEffect(() => {
+		if (profilePicture && !profilePicture.startsWith('data:')) {
+			fetch(`/api/files/get-url?storageId=${profilePicture}`)
+				.then((res) => res.json())
+				.then((data) => {
+					if (data.url) {
+						setImageUrl(data.url);
+					}
+				})
+				.catch((error) => {
+					console.error('Error fetching image URL:', error);
+				});
+		} else if (profilePicture && profilePicture.startsWith('data:')) {
+			setImageUrl(profilePicture);
+		} else {
+			setImageUrl(null);
+		}
+	}, [profilePicture]);
+
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user}>
+		<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
 			<div className="space-y-6">
 				{/* Header */}
 				<div>
@@ -120,24 +201,34 @@ export default function SettingsPage() {
 							<Label className="text-slate-300">Profile Picture</Label>
 							<div className="flex items-center space-x-4">
 								<div className="relative">
-									{profilePicture ? (
+									{imageUrl ? (
 										<img
-											src={profilePicture}
+											src={imageUrl}
 											alt="Profile"
 											className="h-20 w-20 rounded-full object-cover border-2 border-slate-600"
+											onError={(e) => {
+												// Fallback to initials if image fails to load
+												e.currentTarget.style.display = 'none';
+												e.currentTarget.nextElementSibling?.classList.remove('hidden');
+											}}
 										/>
-									) : (
+									) : null}
+									{!profilePicture && (
 										<div className="h-20 w-20 rounded-full bg-[#FFB900] flex items-center justify-center text-black font-semibold text-2xl">
 											{name.charAt(0).toUpperCase()}
 										</div>
 									)}
+									{/* Fallback initials (hidden by default) */}
+									<div className="h-20 w-20 rounded-full bg-[#FFB900] flex items-center justify-center text-black font-semibold text-2xl hidden">
+										{name.charAt(0).toUpperCase()}
+									</div>
 									{isUploading && (
 										<div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
 											<div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
 										</div>
 									)}
 								</div>
-								<div className="space-y-2">
+								<div className="space-y-2 flex gap-2">
 									<Button
 										onClick={() => fileInputRef.current?.click()}
 										variant="outline"
@@ -193,10 +284,11 @@ export default function SettingsPage() {
 								id="email"
 								type="email"
 								value={email}
-								onChange={(e) => setEmail(e.target.value)}
-								className="bg-slate-700 border-slate-600 text-white placeholder:text-slate-400"
-								placeholder="Enter your email"
+								disabled
+								className="bg-slate-600/50 border-slate-500 text-slate-400 cursor-not-allowed opacity-60"
+								placeholder="Email cannot be changed"
 							/>
+							<p className="text-xs text-slate-500 mt-1">Email address cannot be modified</p>
 						</div>
 
 						{/* Save Button */}
@@ -227,7 +319,19 @@ export default function SettingsPage() {
 							<div>
 								<Label className="text-slate-400 text-sm">Account Created</Label>
 								<p className="text-slate-200 text-sm">
-									{user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+									{user?.createdAt
+										? new Date(user.createdAt).toLocaleDateString('en-US', {
+												day: 'numeric',
+												month: 'long',
+												year: 'numeric',
+											}) +
+											' at ' +
+											new Date(user.createdAt).toLocaleTimeString('en-US', {
+												hour: 'numeric',
+												minute: '2-digit',
+												hour12: true,
+											})
+										: 'N/A'}
 								</p>
 							</div>
 						</div>

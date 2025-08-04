@@ -12,6 +12,13 @@ export async function GET(request: NextRequest) {
 		const url = request.nextUrl;
 		const code = url.searchParams.get('code');
 
+		console.log('🔍 Auth endpoint called with URL:', url.toString());
+		console.log('🔍 Environment variables:', {
+			GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+			GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+			GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
+		});
+
 		if (!code) {
 			// Generate authorization URL with proper redirect
 			const authUrl = auth.generateAuthUrl({
@@ -38,7 +45,7 @@ export async function GET(request: NextRequest) {
 
 		// Check if this code has already been used (simple in-memory check)
 		const codeKey = `used_code_${code}`;
-		if (global[codeKey]) {
+		if ((global as any)[codeKey]) {
 			console.log('❌ Authorization code already used');
 			return NextResponse.json(
 				{
@@ -52,19 +59,22 @@ export async function GET(request: NextRequest) {
 		}
 
 		// Mark this code as used
-		global[codeKey] = true;
+		(global as any)[codeKey] = true;
 
 		// Exchange code for tokens
 		const { tokens } = await auth.getToken(code);
 
 		console.log('🔍 Successfully exchanged code for tokens');
 
+		// Return tokens directly as JSON
+		console.log('🔍 Returning tokens directly as JSON');
+
 		return NextResponse.json({
 			success: true,
 			access_token: tokens.access_token,
-			refresh_token: tokens.refresh_token || '',
+			refresh_token: tokens.refresh_token,
 			expiry_date: tokens.expiry_date || Date.now() + 3600000,
-			message: 'Store these tokens securely for webhook use',
+			message: 'Tokens received successfully',
 		});
 	} catch (error) {
 		console.error('Gmail auth error:', error);
@@ -76,8 +86,8 @@ export async function GET(request: NextRequest) {
 			if (errorMessage.includes('invalid_grant')) {
 				console.error('🔍 Invalid grant error details:', {
 					error: error.message,
-					code: error.code,
-					status: error.status,
+					code: (error as any).code,
+					status: (error as any).status,
 					redirectUri: process.env.GOOGLE_REDIRECT_URI,
 				});
 

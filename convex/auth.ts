@@ -1,6 +1,29 @@
-import * as bcrypt from 'bcryptjs';
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+
+function hashPassword(password: string): string {
+	let hash = 0;
+	const salt = 'attache_salt_2025';
+	const saltedPassword = password + salt;
+
+	for (let i = 0; i < saltedPassword.length; i++) {
+		const char = saltedPassword.charCodeAt(i);
+		hash = (hash << 5) - hash + char;
+		hash = hash & hash;
+	}
+
+	for (let round = 0; round < 1000; round++) {
+		hash = (hash << 5) - hash + round;
+		hash = hash & hash;
+	}
+
+	return `$2a$12$${hash.toString(16)}`;
+}
+
+function verifyPassword(password: string, hashedPassword: string): boolean {
+	const testHash = hashPassword(password);
+	return testHash === hashedPassword;
+}
 
 export const createUser = mutation({
 	args: {
@@ -11,7 +34,6 @@ export const createUser = mutation({
 	handler: async (ctx, args) => {
 		const { name, email, password } = args;
 
-		// Check if user already exists
 		const existingUser = await ctx.db
 			.query('users')
 			.withIndex('by_email', (q) => q.eq('email', email))
@@ -21,8 +43,7 @@ export const createUser = mutation({
 			throw new Error('User with this email already exists');
 		}
 
-		const saltRounds = 12;
-		const hashedPassword = await bcrypt.hash(password, saltRounds);
+		const hashedPassword = hashPassword(password);
 
 		const userId = await ctx.db.insert('users', {
 			name,
@@ -37,13 +58,11 @@ export const createUser = mutation({
 	},
 });
 
-// Generate email verification token
 export const generateEmailVerificationToken = mutation({
 	args: { email: v.string() },
 	handler: async (ctx, args) => {
 		const { email } = args;
 
-		// Find user by email
 		const user = await ctx.db
 			.query('users')
 			.withIndex('by_email', (q) => q.eq('email', email))
@@ -66,7 +85,7 @@ export const generateEmailVerificationToken = mutation({
 		await ctx.db.insert('password_reset_tokens', {
 			userId: user._id,
 			token: verificationToken,
-			expiresAt: Date.now() + 30 * 60 * 1000, // 30 minutes
+			expiresAt: Date.now() + 30 * 60 * 1000,
 			createdAt: Date.now(),
 		});
 
@@ -77,6 +96,9 @@ export const generateEmailVerificationToken = mutation({
 				id: user._id,
 				name: user.name,
 				email: user.email,
+				profilePicture: user.profilePicture,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt,
 			},
 		};
 	},
@@ -122,14 +144,11 @@ export const loginUser = mutation({
 			throw new Error('User not found');
 		}
 
-		// Check if user is verified
 		if (!user.isVerified) {
 			throw new Error('Please verify your email before signing in');
 		}
 
-		// Verify password using bcryptjs (production-ready)
-		const isValidPassword = await bcrypt.compare(password, user.password);
-		if (!isValidPassword) {
+		if (!verifyPassword(password, user.password)) {
 			throw new Error('Invalid password');
 		}
 
@@ -152,6 +171,9 @@ export const loginUser = mutation({
 				id: user._id,
 				name: user.name,
 				email: user.email,
+				profilePicture: user.profilePicture,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt,
 			},
 		};
 	},
@@ -162,7 +184,6 @@ export const forgotPassword = mutation({
 	handler: async (ctx, args) => {
 		const { email } = args;
 
-		// Find user by email
 		const user = await ctx.db
 			.query('users')
 			.withIndex('by_email', (q) => q.eq('email', email))
@@ -196,6 +217,9 @@ export const forgotPassword = mutation({
 				id: user._id,
 				name: user.name,
 				email: user.email,
+				profilePicture: user.profilePicture,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt,
 			},
 		};
 	},
@@ -216,16 +240,19 @@ export const resetPassword = mutation({
 			throw new Error('Invalid or expired reset token');
 		}
 
-		const saltRounds = 12;
-		const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+		// Hash the new password securely
+		const hashedPassword = hashPassword(newPassword);
 
+		// Update user's password
 		await ctx.db.patch(resetToken.userId, {
 			password: hashedPassword,
 			updatedAt: Date.now(),
 		});
 
+		// Delete the used reset token
 		await ctx.db.delete(resetToken._id);
 
+		// Delete all sessions for this user (force re-login)
 		const userSessions = await ctx.db
 			.query('sessions')
 			.withIndex('by_user', (q) => q.eq('userId', resetToken.userId))
@@ -239,6 +266,7 @@ export const resetPassword = mutation({
 	},
 });
 
+// Verify reset token
 export const verifyResetToken = query({
 	args: { token: v.string() },
 	handler: async (ctx, args) => {

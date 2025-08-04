@@ -2,7 +2,7 @@
 
 import { useQuery } from 'convex/react';
 import { Calendar, ChevronLeft, ChevronRight, Download, Eye, FileText, Filter, HardDrive, Search } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import { Button } from '../../components/ui/button';
@@ -13,7 +13,6 @@ import { Input } from '../../components/ui/input';
 import { Id } from '../../../convex/_generated/dataModel';
 import { useAuth } from '../../hooks/useAuth';
 
-// Utility function to format file size
 function formatFileSize(bytes: number): string {
 	if (bytes === 0) return '0 Bytes';
 	const k = 1024;
@@ -22,7 +21,6 @@ function formatFileSize(bytes: number): string {
 	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// Utility function to get file icon based on content type
 function getFileIcon(contentType: string): string {
 	if (contentType.includes('pdf')) return '📄';
 	if (contentType.includes('image')) return '🖼️';
@@ -33,17 +31,14 @@ function getFileIcon(contentType: string): string {
 }
 
 export default function DocumentsPage() {
-	const { user, loading, authChecked, handleLogout, checkAuth } = useAuth();
-
-	// Check authentication on mount
-	React.useEffect(() => {
-		if (!authChecked) {
-			checkAuth();
-		}
-	}, [authChecked, checkAuth]);
+	const { user, handleLogout } = useAuth();
 
 	const documents = useQuery(api.documents.getAllDocuments, user?.id ? { userId: user.id as Id<'users'> } : 'skip');
 	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as Id<'users'> } : 'skip');
+	const gmailIntegration = useQuery(
+		api.gmail.getGmailIntegration,
+		user?.id ? { userId: user.id as Id<'users'> } : 'skip',
+	);
 
 	const [searchTerm, setSearchTerm] = useState('');
 	const [selectedCompany, setSelectedCompany] = useState<string>('all');
@@ -54,18 +49,14 @@ export default function DocumentsPage() {
 	const itemsPerPage = 20;
 	const [selectedDocument, setSelectedDocument] = useState<any>(null);
 
-	// Filter documents based on search and filters
 	const filteredDocuments =
 		documents?.filter((doc) => {
-			// Search filter
 			const matchesSearch =
 				doc.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				doc.filename.toLowerCase().includes(searchTerm.toLowerCase());
 
-			// Company filter
 			const matchesCompany = selectedCompany === 'all' || doc.companyId === selectedCompany;
 
-			// Date filter
 			let matchesDate = true;
 			if (dateFilter !== 'all') {
 				const docDate = new Date(doc.uploadedAt);
@@ -88,7 +79,6 @@ export default function DocumentsPage() {
 				}
 			}
 
-			// Size filter
 			let matchesSize = true;
 			if (sizeFilter !== 'all') {
 				const sizeInMB = doc.size / (1024 * 1024);
@@ -105,7 +95,6 @@ export default function DocumentsPage() {
 				}
 			}
 
-			// Type filter
 			let matchesType = true;
 			if (typeFilter !== 'all') {
 				switch (typeFilter) {
@@ -170,7 +159,7 @@ export default function DocumentsPage() {
 	// Show loading state while data is being fetched
 	if (!documents || !companies) {
 		return (
-			<DashboardLayout onLogout={handleLogout} user={user}>
+			<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
 				<div className="space-y-6">
 					{/* Header */}
 					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -190,12 +179,12 @@ export default function DocumentsPage() {
 						</div>
 					</div>
 
-					{/* Loading statistics */}
+					{/* Loading skeleton for statistics */}
 					<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 						{Array.from({ length: 4 }).map((_, index) => (
 							<div
 								key={index}
-								className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-lg p-6 animate-pulse"
+								className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 animate-pulse"
 							>
 								<div className="space-y-4">
 									<div className="h-4 bg-slate-700 rounded w-3/4"></div>
@@ -206,10 +195,10 @@ export default function DocumentsPage() {
 						))}
 					</div>
 
-					{/* Loading filters */}
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
+					{/* Loading skeleton for filters */}
+					<Card className="bg-slate-800/50 border-slate-700">
 						<CardHeader>
-							<CardTitle className="text-slate-100 flex items-center">
+							<CardTitle className="text-white flex items-center">
 								<Filter className="h-5 w-5 mr-2" />
 								Filters
 							</CardTitle>
@@ -226,10 +215,10 @@ export default function DocumentsPage() {
 						</CardContent>
 					</Card>
 
-					{/* Loading documents list */}
-					<Card className="bg-slate-800/80 backdrop-blur-sm border-slate-700">
+					{/* Loading skeleton for documents list */}
+					<Card className="bg-slate-800/50 border-slate-700">
 						<CardHeader>
-							<CardTitle className="text-slate-100">All Documents</CardTitle>
+							<CardTitle className="text-white">All Documents</CardTitle>
 							<CardDescription className="text-slate-400">Loading documents...</CardDescription>
 						</CardHeader>
 						<CardContent>
@@ -258,7 +247,7 @@ export default function DocumentsPage() {
 	}
 
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user}>
+		<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
 			<div className="space-y-6">
 				{/* Header */}
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

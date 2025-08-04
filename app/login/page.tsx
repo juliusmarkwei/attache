@@ -1,12 +1,13 @@
 'use client';
 
-import { Loader2, Lock, Mail } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/auth/AuthLayout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
 	const [loginData, setLoginData] = useState({
@@ -14,7 +15,16 @@ export default function LoginPage() {
 		password: '',
 	});
 	const [loading, setLoading] = useState(false);
+	const [showPassword, setShowPassword] = useState(false);
 	const router = useRouter();
+	const { setUser } = useAuth();
+
+	// Debug redirect parameter
+	useEffect(() => {
+		const urlParams = new URLSearchParams(window.location.search);
+		const redirectUrl = urlParams.get('redirect');
+		console.log('🔍 Login page loaded with redirect URL:', redirectUrl);
+	}, []);
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -31,16 +41,27 @@ export default function LoginPage() {
 			const data = await response.json();
 
 			if (response.ok) {
+				// Update the auth store with the user data
+				setUser(data.user);
+
 				toast.success('Login successful!', {
 					description: 'Welcome back to Attache.',
 				});
-				// Redirect to dashboard
-				router.push('/dashboard');
+
+				// Check if there's a redirect URL
+				const urlParams = new URLSearchParams(window.location.search);
+				const redirectUrl = urlParams.get('redirect');
+
+				// Redirect to the specified URL or dashboard
+				if (redirectUrl) {
+					router.push(redirectUrl);
+				} else {
+					router.push('/dashboard');
+				}
 			} else {
 				toast.error(data.error || 'Login failed');
 			}
 		} catch (error) {
-			console.error('Login error:', error);
 			toast.error('Network error. Please try again.');
 		} finally {
 			setLoading(false);
@@ -73,7 +94,7 @@ export default function LoginPage() {
 					<div className="relative">
 						<Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
 						<Input
-							type="password"
+							type={showPassword ? 'text' : 'password'}
 							placeholder="Password"
 							value={loginData.password}
 							onChange={(e) =>
@@ -83,8 +104,15 @@ export default function LoginPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
 						/>
+						<button
+							type="button"
+							onClick={() => setShowPassword(!showPassword)}
+							className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white/80 transition-colors"
+						>
+							{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+						</button>
 					</div>
 
 					<Button
