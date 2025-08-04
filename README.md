@@ -10,6 +10,8 @@ A full-stack document management platform that automatically processes email att
 - **Real-time Updates**: Live document and company listings
 - **Secure Storage**: Convex file storage with download functionality
 - **Beautiful UI**: Modern, responsive design with Tailwind CSS
+- **PWA Support**: Progressive Web App with custom app icon
+- **Cross-platform**: Works on desktop, tablet, and mobile devices
 
 ## 🏗️ Architecture
 
@@ -26,6 +28,8 @@ A full-stack document management platform that automatically processes email att
 - **Convex React**: Real-time data synchronization
 - **Tailwind CSS**: Utility-first styling
 - **Lucide Icons**: Beautiful icon library
+- **PWA Support**: Progressive Web App capabilities
+- **Custom App Icon**: Branded icon for all platforms
 
 ## 📋 Prerequisites
 
@@ -159,12 +163,16 @@ attache/
 │   ├── companies.ts       # Company management
 │   ├── documents.ts       # Document management
 │   └── files.ts           # File storage functions
-├── src/
-│   ├── app/               # Next.js app router
-│   │   ├── api/           # API routes
-│   │   └── dashboard/     # Dashboard pages
-│   └── components/        # React components
+├── app/                   # Next.js app router
+│   ├── api/               # API routes
+│   └── dashboard/         # Dashboard pages
+├── components/            # React components
 └── public/                # Static assets
+    ├── icon.svg           # App icon (SVG)
+    ├── icon-192.png       # App icon (192x192)
+    ├── icon-512.png       # App icon (512x512)
+    ├── manifest.json      # PWA manifest
+    └── Sandy_Tech-02_Single-10.jpg  # Background image
 ```
 
 ### Key Technologies
@@ -174,6 +182,8 @@ attache/
 - **Gmail API**: Email processing and webhooks
 - **Tailwind CSS**: Utility-first CSS framework
 - **TypeScript**: Type-safe development
+- **PWA**: Progressive Web App capabilities
+- **SVG Icons**: Scalable vector graphics for crisp display
 
 ## 🚀 Deployment
 
@@ -182,6 +192,21 @@ attache/
 1. Connect your repository to Vercel
 2. Set up environment variables in Vercel dashboard
 3. Deploy the application
+
+### App Icon & PWA
+
+The application includes a custom app icon and Progressive Web App (PWA) support:
+
+- **App Icon**: Custom SVG icon with brand colors
+- **PWA Manifest**: Web app manifest for mobile installation
+- **Cross-platform**: Works on desktop, tablet, and mobile
+- **Offline Support**: Can be installed as a native app
+
+The app icon appears in:
+
+- Browser tabs and bookmarks
+- Mobile home screens (when added)
+- App stores (if published as PWA)
 
 ### Environment Variables for Production
 
@@ -199,6 +224,7 @@ Ensure all environment variables are set in your production environment:
 - **API Key Protection**: Gmail API keys are stored securely
 - **Input Validation**: All user inputs are validated
 - **Error Handling**: Comprehensive error handling throughout
+- **PWA Security**: Secure manifest and icon handling
 
 ## 📈 Advanced Features
 
