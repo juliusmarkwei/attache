@@ -108,3 +108,26 @@ export const getAllCompanies = query({
 		return companies;
 	},
 });
+
+// Delete company (only if it has no documents)
+export const deleteCompany = mutation({
+	args: { companyId: v.id('companies') },
+	handler: async (ctx, args) => {
+		const { companyId } = args;
+
+		// Check if company has any documents
+		const documents = await ctx.db
+			.query('documents')
+			.withIndex('by_company', (q) => q.eq('companyId', companyId))
+			.collect();
+
+		if (documents.length > 0) {
+			throw new Error('Cannot delete company with existing documents');
+		}
+
+		// Delete the company
+		await ctx.db.delete(companyId);
+
+		return { success: true };
+	},
+});

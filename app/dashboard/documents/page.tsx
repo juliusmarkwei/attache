@@ -1,46 +1,18 @@
 'use client';
 
 import { useQuery } from 'convex/react';
-import {
-	Calendar,
-	ChevronLeft,
-	ChevronRight,
-	Download,
-	Eye,
-	FileText,
-	Filter,
-	HardDrive,
-	Search,
-	Trash2,
-} from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, FileText, Filter, HardDrive, Search } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import ConfirmationModal from '../../components/ui/confirmation-modal';
-import DocumentViewer from '../../components/ui/document-viewer';
+import DocumentList from '../../components/ui/document-list';
 import { Input } from '../../components/ui/input';
 
 import { Id } from '../../../convex/_generated/dataModel';
 import { useAuth } from '../../hooks/useAuth';
-
-function formatFileSize(bytes: number): string {
-	if (bytes === 0) return '0 Bytes';
-	const k = 1024;
-	const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-	const i = Math.floor(Math.log(bytes) / Math.log(k));
-	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function getFileIcon(contentType: string): string {
-	if (contentType.includes('pdf')) return '📄';
-	if (contentType.includes('image')) return '🖼️';
-	if (contentType.includes('text')) return '📝';
-	if (contentType.includes('spreadsheet') || contentType.includes('excel')) return '📊';
-	if (contentType.includes('word') || contentType.includes('document')) return '📄';
-	return '📎';
-}
 
 export default function DocumentsPage() {
 	const { user, handleLogout } = useAuth();
@@ -59,15 +31,12 @@ export default function DocumentsPage() {
 	const [typeFilter, setTypeFilter] = useState<string>('all');
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 20;
-	const [selectedDocument, setSelectedDocument] = useState<any>(null);
-	const [deletingDocument, setDeletingDocument] = useState<string | null>(null);
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [documentToDelete, setDocumentToDelete] = useState<{ id: string; name: string } | null>(null);
+	const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
 
 	const handleDelete = async (documentId: string, filename: string) => {
-		setDeletingDocument(documentId);
-		setShowDeleteModal(false);
-
+		setDeletingDocumentId(documentId);
 		try {
 			const response = await fetch(`/api/documents/delete?documentId=${documentId}`, {
 				method: 'DELETE',
@@ -76,6 +45,7 @@ export default function DocumentsPage() {
 			if (response.ok) {
 				// Refresh the documents list by triggering a re-query
 				// The Convex query will automatically update
+				closeDeleteModal();
 			} else {
 				const errorData = await response.json();
 				console.error('Delete failed:', errorData.error);
@@ -83,7 +53,7 @@ export default function DocumentsPage() {
 		} catch (error) {
 			console.error('Delete failed:', error);
 		} finally {
-			setDeletingDocument(null);
+			setDeletingDocumentId(null);
 		}
 	};
 
@@ -335,7 +305,15 @@ export default function DocumentsPage() {
 							<HardDrive className="h-4 w-4 text-slate-400" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold text-slate-100">{formatFileSize(totalSize)}</div>
+							<div className="text-2xl font-bold text-slate-100">
+								{(() => {
+									if (totalSize === 0) return '0 Bytes';
+									const k = 1024;
+									const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+									const i = Math.floor(Math.log(totalSize) / Math.log(k));
+									return parseFloat((totalSize / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+								})()}
+							</div>
 							<p className="text-xs text-slate-400">Storage used</p>
 						</CardContent>
 					</Card>
@@ -460,92 +438,13 @@ export default function DocumentsPage() {
 								</p>
 							</div>
 						) : (
-							<div className="space-y-4">
-								{paginatedDocuments.map((doc) => {
-									const company = companies?.find((c) => c._id === doc.companyId);
-									return (
-										<div
-											key={doc._id}
-											className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:bg-slate-700/70 transition-colors"
-										>
-											<div className="flex items-center space-x-4">
-												<div className="text-2xl">{getFileIcon(doc.contentType)}</div>
-												<div className="flex-1 min-w-0">
-													<h3 className="text-sm font-medium text-slate-100 truncate">
-														{doc.originalName}
-													</h3>
-													<div className="flex items-center space-x-4 mt-1 text-xs text-slate-400">
-														<span>{formatFileSize(doc.size)}</span>
-														<span>•</span>
-														<span>{doc.contentType}</span>
-														<span>•</span>
-														<span>{company?.name || 'Unknown Company'}</span>
-														<span>•</span>
-														<span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
-													</div>
-												</div>
-											</div>
-											<div className="flex items-center space-x-2">
-												<Button
-													variant="outline"
-													size="sm"
-													onClick={() => setSelectedDocument({ ...doc, company })}
-													className="border-slate-600 text-slate-200 hover:bg-slate-700"
-													title="View document"
-												>
-													<Eye className="h-4 w-4" />
-												</Button>
-												<Button
-													variant="outline"
-													size="sm"
-													onClick={async () => {
-														try {
-															const response = await fetch(
-																`/api/documents/download?storageId=${doc.storageId}&filename=${encodeURIComponent(doc.originalName)}`,
-															);
-
-															if (!response.ok) {
-																throw new Error('Failed to download document');
-															}
-
-															const blob = await response.blob();
-															const url = window.URL.createObjectURL(blob);
-															const a = document.createElement('a');
-															a.href = url;
-															a.download = doc.originalName;
-															document.body.appendChild(a);
-															a.click();
-															window.URL.revokeObjectURL(url);
-															document.body.removeChild(a);
-														} catch (error) {
-															console.error('Download failed:', error);
-															// You could add a toast notification here
-														}
-													}}
-													className="border-slate-600 text-slate-200 hover:bg-slate-700"
-													title="Download document"
-												>
-													<Download className="h-4 w-4" />
-												</Button>
-												<Button
-													variant="outline"
-													size="sm"
-													onClick={() => openDeleteModal(doc._id, doc.originalName)}
-													disabled={deletingDocument === doc._id}
-													className="border-red-600 text-red-400 hover:bg-red-600/20 disabled:opacity-50"
-													title="Delete document"
-												>
-													{deletingDocument === doc._id ? (
-														<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
-													) : (
-														<Trash2 className="h-4 w-4" />
-													)}
-												</Button>
-											</div>
-										</div>
-									);
-								})}
-							</div>
+							<DocumentList
+								documents={paginatedDocuments}
+								companies={companies}
+								onDeleteRequest={openDeleteModal}
+								showDeleteButton={true}
+								deletingDocumentId={deletingDocumentId}
+							/>
 						)}
 					</CardContent>
 				</Card>
@@ -599,15 +498,6 @@ export default function DocumentsPage() {
 					</div>
 				)}
 
-				{/* Document Viewer Modal */}
-				{selectedDocument && (
-					<DocumentViewer
-						document={selectedDocument}
-						company={selectedDocument.company}
-						onClose={() => setSelectedDocument(null)}
-					/>
-				)}
-
 				{/* Delete Confirmation Modal */}
 				<ConfirmationModal
 					isOpen={showDeleteModal}
@@ -617,7 +507,6 @@ export default function DocumentsPage() {
 					description={`Are you sure you want to delete "${documentToDelete?.name}"? This action cannot be undone.`}
 					confirmText="Delete Document"
 					cancelText="Cancel"
-					isLoading={deletingDocument === documentToDelete?.id}
 				/>
 			</div>
 		</DashboardLayout>

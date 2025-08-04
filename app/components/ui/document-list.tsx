@@ -1,0 +1,202 @@
+'use client';
+
+import { Download, Eye, FileSpreadsheet, FileText, FileType, Image, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from './button';
+import DocumentViewer from './document-viewer';
+
+interface Document {
+	_id: string;
+	originalName: string;
+	filename: string;
+	contentType: string;
+	size: number;
+	storageId: string;
+	uploadedAt: number;
+	companyId: string;
+}
+
+interface Company {
+	_id: string;
+	name: string;
+}
+
+interface DocumentListProps {
+	documents: Document[];
+	companies?: Company[];
+	onDelete?: (documentId: string, filename: string) => void;
+	onDeleteRequest?: (documentId: string, filename: string) => void;
+	showDeleteButton?: boolean;
+	className?: string;
+	deletingDocumentId?: string | null;
+}
+
+function formatFileSize(bytes: number): string {
+	if (bytes === 0) return '0 Bytes';
+	const k = 1024;
+	const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function getFileIcon(contentType: string) {
+	if (contentType.includes('pdf')) return <FileText className="h-6 w-6 text-blue-400" />;
+	if (contentType.includes('image')) return <Image className="h-6 w-6 text-green-400" />;
+	if (contentType.includes('spreadsheet') || contentType.includes('excel'))
+		return <FileSpreadsheet className="h-6 w-6 text-green-500" />;
+	if (contentType.includes('word') || contentType.includes('document') || contentType.includes('text'))
+		return <FileText className="h-6 w-6 text-blue-500" />;
+	return <FileType className="h-6 w-6 text-slate-400" />;
+}
+
+export default function DocumentList({
+	documents,
+	companies,
+	onDelete,
+	onDeleteRequest,
+	showDeleteButton = false,
+	className = '',
+	deletingDocumentId = null,
+}: DocumentListProps) {
+	const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+	const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+	const [deletingDocument, setDeletingDocument] = useState<string | null>(null);
+
+	const handleDownload = async (doc: Document) => {
+		try {
+			const response = await fetch(
+				`/api/documents/download?storageId=${doc.storageId}&filename=${encodeURIComponent(doc.originalName)}`,
+			);
+
+			if (!response.ok) {
+				throw new Error('Failed to download document');
+			}
+
+			const blob = await response.blob();
+			const url = window.URL.createObjectURL(blob);
+			const a = window.document.createElement('a');
+			a.href = url;
+			a.download = doc.originalName;
+			window.document.body.appendChild(a);
+			a.click();
+			window.URL.revokeObjectURL(url);
+			window.document.body.removeChild(a);
+		} catch (error) {
+			console.error('Download failed:', error);
+		}
+	};
+
+	const handleDelete = async (documentId: string, filename: string) => {
+		if (onDeleteRequest) {
+			// Use confirmation flow
+			onDeleteRequest(documentId, filename);
+		} else if (onDelete) {
+			// Direct delete (for backward compatibility)
+			setDeletingDocument(documentId);
+			try {
+				await onDelete(documentId, filename);
+			} finally {
+				setDeletingDocument(null);
+			}
+		}
+	};
+
+	if (documents.length === 0) {
+		return (
+			<div className={`text-center py-12 ${className}`}>
+				<div className="mb-4 flex justify-center">
+					<FileText className="h-16 w-16 text-slate-400" />
+				</div>
+				<h3 className="text-lg font-medium text-slate-200 mb-2">No documents found</h3>
+				<p className="text-slate-400">No documents available for this company.</p>
+			</div>
+		);
+	}
+
+	return (
+		<>
+			<div className={`space-y-4 ${className}`}>
+				{documents.map((doc) => {
+					const company = companies?.find((c) => c._id === doc.companyId);
+					return (
+						<div
+							key={doc._id}
+							className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:bg-slate-700/70 transition-colors"
+						>
+							<div className="flex items-center space-x-4">
+								<div>{getFileIcon(doc.contentType)}</div>
+								<div className="flex-1 min-w-0">
+									<h3 className="text-sm font-medium text-slate-100 truncate">{doc.originalName}</h3>
+									<div className="flex items-center space-x-4 mt-1 text-xs text-slate-400">
+										<span>{formatFileSize(doc.size)}</span>
+										<span>•</span>
+										<span>{doc.contentType}</span>
+										{company && (
+											<>
+												<span>•</span>
+												<span>{company.name}</span>
+											</>
+										)}
+										<span>•</span>
+										<span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
+									</div>
+								</div>
+							</div>
+							<div className="flex items-center space-x-2">
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => {
+										setSelectedDocument(doc);
+										setSelectedCompany(company || null);
+									}}
+									className="border-slate-600 text-slate-200 hover:bg-slate-700"
+									title="View document"
+								>
+									<Eye className="h-4 w-4" />
+								</Button>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => handleDownload(doc)}
+									className="border-slate-600 text-slate-200 hover:bg-slate-700"
+									title="Download document"
+								>
+									<Download className="h-4 w-4" />
+								</Button>
+								{showDeleteButton && (onDelete || onDeleteRequest) && (
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => handleDelete(doc._id, doc.originalName)}
+										disabled={deletingDocument === doc._id || deletingDocumentId === doc._id}
+										className="border-red-600 text-red-400 hover:bg-red-600/20 disabled:opacity-50"
+										title="Delete document"
+									>
+										{deletingDocument === doc._id || deletingDocumentId === doc._id ? (
+											<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-400"></div>
+										) : (
+											<Trash2 className="h-4 w-4" />
+										)}
+									</Button>
+								)}
+							</div>
+						</div>
+					);
+				})}
+			</div>
+
+			{/* Document Viewer Modal */}
+			{selectedDocument && (
+				<DocumentViewer
+					document={selectedDocument}
+					company={selectedCompany || undefined}
+					onClose={() => {
+						setSelectedDocument(null);
+						setSelectedCompany(null);
+					}}
+				/>
+			)}
+		</>
+	);
+}

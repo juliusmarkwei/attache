@@ -1,4 +1,4 @@
-import { Download, Eye, X } from 'lucide-react';
+import { Download, Eye, FileSpreadsheet, FileText, FileType, Image, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './button';
 
@@ -9,6 +9,7 @@ interface DocumentViewerProps {
 		filename: string;
 		contentType: string;
 		size: number;
+		storageId: string;
 		uploadedAt: number;
 		companyId: string;
 	};
@@ -31,13 +32,14 @@ export default function DocumentViewer({ document, company, onClose }: DocumentV
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 	};
 
-	const getFileIcon = (contentType: string): string => {
-		if (contentType.includes('pdf')) return '📄';
-		if (contentType.includes('image')) return '🖼️';
-		if (contentType.includes('text')) return '📝';
-		if (contentType.includes('spreadsheet') || contentType.includes('excel')) return '📊';
-		if (contentType.includes('word') || contentType.includes('document')) return '📄';
-		return '📎';
+	const getFileIcon = (contentType: string) => {
+		if (contentType.includes('pdf')) return <FileText className="h-8 w-8 text-blue-400" />;
+		if (contentType.includes('image')) return <Image className="h-8 w-8 text-green-400" />;
+		if (contentType.includes('spreadsheet') || contentType.includes('excel'))
+			return <FileSpreadsheet className="h-8 w-8 text-green-500" />;
+		if (contentType.includes('word') || contentType.includes('document') || contentType.includes('text'))
+			return <FileText className="h-8 w-8 text-blue-500" />;
+		return <FileType className="h-8 w-8 text-slate-400" />;
 	};
 
 	const handleDownload = async () => {
@@ -55,13 +57,13 @@ export default function DocumentViewer({ document, company, onClose }: DocumentV
 
 			const blob = await response.blob();
 			const url = window.URL.createObjectURL(blob);
-			const a = document.createElement('a');
+			const a = window.document.createElement('a');
 			a.href = url;
 			a.download = document.originalName;
-			document.body.appendChild(a);
+			window.document.body.appendChild(a);
 			a.click();
 			window.URL.revokeObjectURL(url);
-			document.body.removeChild(a);
+			window.document.body.removeChild(a);
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Download failed');
 		} finally {
@@ -80,7 +82,7 @@ export default function DocumentViewer({ document, company, onClose }: DocumentV
 				{/* Header */}
 				<div className="flex items-center justify-between p-4 border-b border-slate-700">
 					<div className="flex items-center space-x-3">
-						<div className="text-2xl">{getFileIcon(document.contentType)}</div>
+						<div>{getFileIcon(document.contentType)}</div>
 						<div>
 							<h2 className="text-lg font-semibold text-white">{document.originalName}</h2>
 							<div className="flex items-center space-x-4 text-sm text-slate-400">

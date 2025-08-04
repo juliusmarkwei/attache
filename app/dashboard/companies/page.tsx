@@ -2,6 +2,7 @@
 
 import { useQuery } from 'convex/react';
 import { Building2, ChevronLeft, ChevronRight, Mail, MapPin, Phone, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
@@ -13,6 +14,7 @@ import { useAuth } from '../../hooks/useAuth';
 
 export default function CompaniesPage() {
 	const { user, handleLogout } = useAuth();
+	const router = useRouter();
 
 	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as any } : 'skip');
 	const gmailIntegration = useQuery(api.gmail.getGmailIntegration, user?.id ? { userId: user.id as any } : 'skip');
@@ -185,7 +187,8 @@ export default function CompaniesPage() {
 								{paginatedCompanies.map((company) => (
 									<Card
 										key={company._id}
-										className="bg-slate-700/50 border-slate-600 hover:bg-slate-700/70 transition-colors"
+										className="bg-slate-700/50 border-slate-600 hover:bg-slate-700/70 transition-colors cursor-pointer"
+										onClick={() => router.push(`/dashboard/companies/${company._id}`)}
 									>
 										<CardContent className="p-4">
 											<div className="flex items-start space-x-3">
