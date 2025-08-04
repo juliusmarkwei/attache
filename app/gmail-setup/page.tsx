@@ -65,7 +65,7 @@ export default function GmailSetup() {
 		}
 
 		// If user has an active Gmail integration and no OAuth flow in progress, show completed state
-		if (user?.id && gmailIntegration && !hasCode && !hasSuccess && !hasTokenId) {
+		if (user?.id && gmailIntegration && gmailIntegration.isActive && !hasCode && !hasSuccess && !hasTokenId) {
 			console.log('🔍 User has active Gmail integration, showing completed state');
 			setStatus({
 				step: 'completed',
@@ -76,6 +76,17 @@ export default function GmailSetup() {
 						? new Date(gmailIntegration.subscriptionExpiration).toLocaleString()
 						: 'Active',
 				},
+			});
+			return;
+		}
+
+		// If user has an inactive Gmail integration, show re-authentication needed
+		if (user?.id && gmailIntegration && !gmailIntegration.isActive && !hasCode && !hasSuccess && !hasTokenId) {
+			console.log('🔍 User has inactive Gmail integration, showing re-authentication needed');
+			setStatus({
+				step: 'error',
+				message: 'Gmail integration needs re-authentication',
+				error: 'Your Gmail integration has expired and needs to be re-authenticated. Please click "Connect Gmail" to reconnect your account.',
 			});
 			return;
 		}
@@ -549,6 +560,8 @@ export default function GmailSetup() {
 				hasAccessToken: !!accessToken,
 				hasTokens: !!status.tokens,
 				userId: user?.id,
+				userIdType: typeof user?.id,
+				userObject: user,
 			});
 
 			const response = await fetch('/api/gmail/subscribe', {
@@ -793,11 +806,45 @@ export default function GmailSetup() {
 							{status.step === 'error' && (
 								<div className="space-y-6">
 									<div className="text-center">
-										<h3 className="text-xl font-semibold text-white mb-4">Setup Error</h3>
+										<h3 className="text-xl font-semibold text-white mb-4">
+											{status.error?.includes('re-authenticated')
+												? 'Re-authentication Required'
+												: 'Setup Error'}
+										</h3>
 										<p className="text-slate-300 max-w-2xl mx-auto">
-											There was an issue with the Gmail integration setup. Please try again.
+											{status.error?.includes('re-authenticated')
+												? 'Your Gmail integration has expired and needs to be re-authenticated to continue processing emails.'
+												: 'There was an issue with the Gmail integration setup. Please try again.'}
 										</p>
 									</div>
+
+									{/* Show current integration status */}
+									{gmailIntegration && (
+										<div className="p-6 bg-slate-700/50 border border-slate-600 rounded-xl">
+											<div className="flex items-center space-x-3 mb-3">
+												<AlertCircle className="h-6 w-6 text-red-400" />
+												<p className="text-red-400 text-lg font-medium">
+													Integration Status: Inactive
+												</p>
+											</div>
+											<div className="text-sm text-slate-300 space-y-1">
+												<p>
+													• Last updated:{' '}
+													{gmailIntegration.updatedAt
+														? new Date(gmailIntegration.updatedAt).toLocaleString()
+														: 'Unknown'}
+												</p>
+												<p>• Status: {gmailIntegration.isActive ? 'Active' : 'Inactive'}</p>
+												{gmailIntegration.expiryDate && (
+													<p>
+														• Token expires:{' '}
+														{new Date(gmailIntegration.expiryDate).toLocaleString()}
+													</p>
+												)}
+											</div>
+										</div>
+									)}
+
 									<div className="flex justify-center space-x-4">
 										<Button
 											onClick={() => {
@@ -814,7 +861,9 @@ export default function GmailSetup() {
 											size="lg"
 											className="px-8 py-4 text-lg bg-[#FFB900] hover:bg-[#FFB900]/90 text-slate-900"
 										>
-											Try Again
+											{status.error?.includes('re-authenticated')
+												? 'Reconnect Gmail'
+												: 'Try Again'}
 										</Button>
 										<Button
 											onClick={() => {

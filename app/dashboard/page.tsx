@@ -60,14 +60,14 @@ export default function Dashboard() {
 	useEffect(() => {
 		// Only run this effect when gmailIntegration is loaded (not undefined)
 		if (gmailIntegration !== undefined) {
-			if (!gmailIntegration) {
-				// User doesn't have Gmail integration, show banner if not dismissed
+			if (!gmailIntegration || !gmailIntegration.isActive) {
+				// User doesn't have Gmail integration or it's inactive, show banner if not dismissed
 				const dismissed = sessionStorage.getItem('gmail_banner_dismissed');
 				if (dismissed !== 'true') {
 					setShowGmailBanner(true);
 				}
-			} else if (gmailIntegration) {
-				// User has Gmail integration, hide connect banner
+			} else if (gmailIntegration && gmailIntegration.isActive) {
+				// User has active Gmail integration, hide connect banner
 				setShowGmailBanner(false);
 			}
 		}
@@ -197,7 +197,7 @@ export default function Dashboard() {
 				</div>
 
 				{/* Gmail Integration Active Banner */}
-				{gmailIntegration && showActiveBanner && (
+				{gmailIntegration?.isActive && showActiveBanner && (
 					<div className="mb-6 p-4 bg-green-600/20 border border-green-500/30 rounded-lg">
 						<div className="flex items-center justify-between">
 							<div className="flex items-center space-x-3">
@@ -231,15 +231,19 @@ export default function Dashboard() {
 				)}
 
 				{/* Gmail Integration Banner */}
-				{showGmailBanner && !gmailIntegration && (
+				{showGmailBanner && (!gmailIntegration || !gmailIntegration.isActive) && (
 					<div className="mb-6 p-4 bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-lg">
 						<div className="flex items-center justify-between">
 							<div className="flex items-center space-x-3">
 								<Mail className="h-6 w-6 text-[#FFB900]" />
 								<div>
-									<h3 className="text-white font-semibold">Connect Gmail</h3>
+									<h3 className="text-white font-semibold">
+										{!gmailIntegration ? 'Connect Gmail' : 'Reconnect Gmail'}
+									</h3>
 									<p className="text-slate-300 text-sm">
-										Automatically process emails and extract documents
+										{!gmailIntegration
+											? 'Automatically process emails and extract documents'
+											: 'Your Gmail integration has expired and needs to be re-authenticated'}
 									</p>
 								</div>
 							</div>
@@ -248,7 +252,7 @@ export default function Dashboard() {
 									onClick={() => router.push('/gmail-setup')}
 									className="bg-[#FFB900] text-slate-900 hover:bg-[#FFB900]/90"
 								>
-									Connect Gmail
+									{!gmailIntegration ? 'Connect Gmail' : 'Reconnect Gmail'}
 								</Button>
 								<Button
 									variant="ghost"

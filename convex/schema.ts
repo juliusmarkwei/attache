@@ -72,7 +72,7 @@ export default defineSchema({
 	gmail_integrations: defineTable({
 		userId: v.id('users'),
 		accessToken: v.string(),
-		refreshToken: v.string(),
+		refreshToken: v.optional(v.string()),
 		expiryDate: v.number(),
 		historyId: v.optional(v.string()),
 		subscriptionExpiration: v.optional(v.number()),

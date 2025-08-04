@@ -13,6 +13,11 @@ const auth = new google.auth.OAuth2(
 );
 
 function validateEnvironment() {
+	console.log('🔧 Validating environment variables...');
+	console.log('🔧 GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing');
+	console.log('🔧 GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Missing');
+	console.log('🔧 NEXT_PUBLIC_CONVEX_URL:', process.env.NEXT_PUBLIC_CONVEX_URL ? 'Set' : 'Missing');
+
 	if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 		throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables are required');
 	}
@@ -20,28 +25,35 @@ function validateEnvironment() {
 
 export async function POST(request: NextRequest) {
 	try {
+		console.log('📧 Gmail webhook received');
 		validateEnvironment();
 
 		const body = await request.json();
+		console.log('📧 Webhook body:', JSON.stringify(body, null, 2));
 
 		if (body.message && body.message.data) {
 			try {
 				const decodedData = Buffer.from(body.message.data, 'base64').toString('utf-8');
 				const gmailData = JSON.parse(decodedData);
+				console.log('📧 Decoded Gmail data:', JSON.stringify(gmailData, null, 2));
 
 				if (gmailData.historyId) {
+					console.log('📧 Processing Gmail history with ID:', gmailData.historyId);
 					await processGmailHistory(gmailData.historyId);
 				}
 			} catch (error) {
-				// Handle error silently
 				console.error('❌ Error processing Gmail webhook:', error);
 			}
 		} else if (body.historyId) {
+			console.log('📧 Processing Gmail history with ID:', body.historyId);
 			await processGmailHistory(body.historyId);
+		} else {
+			console.log('⚠️ No valid historyId found in webhook body');
 		}
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
+		console.error('❌ Webhook error:', error);
 		return NextResponse.json(
 			{
 				error: 'Internal server error',
@@ -98,6 +110,7 @@ function hasAttachments(message: any): boolean {
 
 async function processGmailHistory(historyId: string) {
 	try {
+		console.log('📧 Starting Gmail history processing for historyId:', historyId);
 		let activeIntegrations: any[] = [];
 		let retryCount = 0;
 		const maxRetries = 3;
@@ -106,11 +119,14 @@ async function processGmailHistory(historyId: string) {
 			try {
 				const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 				activeIntegrations = await convexClient.query(api.gmail.getActiveGmailIntegrations);
+				console.log('📧 Found active integrations:', activeIntegrations.length);
 				break;
 			} catch (error) {
 				retryCount++;
+				console.error(`❌ Error fetching active integrations (attempt ${retryCount}):`, error);
 
 				if (retryCount >= maxRetries) {
+					console.error('❌ Max retries reached for fetching active integrations');
 					return;
 				}
 
@@ -128,11 +144,32 @@ async function processGmailHistory(historyId: string) {
 				});
 
 				try {
-					await gmail.users.getProfile({ auth: auth, userId: 'me' });
+					console.log(`🔍 Testing Gmail API access for integration ${integration._id}`);
+					const profile = await gmail.users.getProfile({ auth: auth, userId: 'me' });
+					console.log(`✅ Gmail API access successful for integration ${integration._id}`);
+
+					// Send notification that integration is working (only once per session)
+					try {
+						const sessionKey = `integration_working_${integration._id}`;
+						if (!(global as any)[sessionKey]) {
+							await NotificationService.addSystemNotification(
+								integration.userId,
+								'Gmail Integration Working',
+								'Your Gmail integration is working properly and processing emails automatically.',
+							);
+							(global as any)[sessionKey] = true;
+							console.log(`📧 Sent working notification to user ${integration.userId}`);
+						}
+					} catch (error) {
+						console.error(`❌ Error sending working notification:`, error);
+					}
 				} catch (tokenError) {
 					console.log(`🔄 Token expired for integration ${integration._id}, attempting refresh...`);
+					console.log(`🔍 Refresh token available: ${!!integration.refreshToken}`);
+
 					if (integration.refreshToken) {
 						try {
+							console.log(`🔄 Attempting to refresh token for integration ${integration._id}`);
 							const { credentials } = await auth.refreshAccessToken();
 
 							// Update the auth object with new credentials
@@ -151,15 +188,85 @@ async function processGmailHistory(historyId: string) {
 							});
 
 							console.log(`✅ Token refreshed successfully for integration ${integration._id}`);
+
+							// Send notification to user that integration is working
+							try {
+								await NotificationService.addSystemNotification(
+									integration.userId,
+									'Gmail Integration Refreshed',
+									'Your Gmail integration has been automatically refreshed and is working properly.',
+								);
+								console.log(`📧 Sent refresh success notification to user ${integration.userId}`);
+							} catch (error) {
+								console.error(`❌ Error sending refresh success notification:`, error);
+							}
 						} catch (refreshError) {
 							console.error(
 								`❌ Failed to refresh token for integration ${integration._id}:`,
 								refreshError,
 							);
+
+							// Deactivate the integration and notify the user when refresh fails
+							try {
+								const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+								// Deactivate the integration
+								await convexClient.mutation(api.gmail.updateGmailIntegration, {
+									integrationId: integration._id,
+									isActive: false,
+								});
+
+								console.log(`🔔 Deactivated integration ${integration._id} due to refresh failure`);
+
+								// Send notification to user
+								await NotificationService.addSystemNotification(
+									integration.userId,
+									'Gmail Integration Needs Re-authentication',
+									'Your Gmail integration failed to refresh and needs to be re-authenticated. Please visit the Gmail Setup page to reconnect your account.',
+								);
+
+								console.log(`📧 Sent re-authentication notification to user ${integration.userId}`);
+							} catch (error) {
+								console.error(`❌ Error deactivating integration or sending notification:`, error);
+							}
+
 							continue;
 						}
 					} else {
 						console.log(`❌ No refresh token available for integration ${integration._id}`);
+						console.log(`🔍 Integration details:`, {
+							id: integration._id,
+							userId: integration.userId,
+							hasAccessToken: !!integration.accessToken,
+							hasRefreshToken: !!integration.refreshToken,
+							expiryDate: integration.expiryDate,
+							isActive: integration.isActive,
+						});
+
+						// Deactivate the integration and notify the user
+						try {
+							const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+							// Deactivate the integration
+							await convexClient.mutation(api.gmail.updateGmailIntegration, {
+								integrationId: integration._id,
+								isActive: false,
+							});
+
+							console.log(`🔔 Deactivated expired integration ${integration._id}`);
+
+							// Send notification to user
+							await NotificationService.addSystemNotification(
+								integration.userId,
+								'Gmail Integration Expired',
+								'Your Gmail integration has expired and needs to be re-authenticated. Please visit the Gmail Setup page to reconnect your account.',
+							);
+
+							console.log(`📧 Sent re-authentication notification to user ${integration.userId}`);
+						} catch (error) {
+							console.error(`❌ Error deactivating integration or sending notification:`, error);
+						}
+
 						continue;
 					}
 				}
@@ -245,6 +352,12 @@ async function processEmail(messageId: string, userId?: string) {
 			return;
 		}
 
+		// Extract email subject and sender for debugging
+		const subject = headers.find((h: any) => h.name === 'Subject')?.value || '';
+		const from = headers.find((h: any) => h.name === 'From')?.value || '';
+		const date = headers.find((h: any) => h.name === 'Date')?.value || '';
+		console.log(`📧 Email details - Subject: "${subject}", From: "${from}"`);
+
 		// Check if email has attachments BEFORE processing
 		if (!hasAttachments(message)) {
 			console.log(`📧 Skipping email ${messageId} - no attachments found (no company will be created)`);
@@ -252,13 +365,6 @@ async function processEmail(messageId: string, userId?: string) {
 		}
 
 		console.log(`📎 Email ${messageId} has attachments - processing company and documents...`);
-
-		// Extract email subject and sender
-		const subject = headers.find((h: any) => h.name === 'Subject')?.value || '';
-		const from = headers.find((h: any) => h.name === 'From')?.value || '';
-		const date = headers.find((h: any) => h.name === 'Date')?.value || '';
-
-		console.log(`📧 Email details - Subject: "${subject}", From: "${from}"`);
 
 		// Extract clean email address from "Name <email@domain.com>" format
 		const cleanEmail = extractEmailFromString(from);
@@ -315,6 +421,19 @@ async function processEmail(messageId: string, userId?: string) {
 		if (userId) {
 			try {
 				await NotificationService.addEmailNotification(userId, subject, company.name);
+			} catch (error) {
+				// Handle error silently
+			}
+		}
+
+		// Send system notification that email was processed successfully
+		if (userId) {
+			try {
+				await NotificationService.addSystemNotification(
+					userId,
+					'Email Processed Successfully',
+					`Email "${subject}" was processed and documents were added to ${company.name}.`,
+				);
 			} catch (error) {
 				// Handle error silently
 			}

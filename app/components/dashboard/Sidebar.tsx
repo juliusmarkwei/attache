@@ -3,6 +3,7 @@
 import { Building2, ChevronLeft, ChevronRight, FileText, Home, LogOut, Mail, Settings, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useNotifications } from '../../hooks/useNotifications';
 import { Button } from '../ui/button';
 
 interface SidebarProps {
@@ -29,6 +30,15 @@ export default function Sidebar({
 	const pathname = usePathname();
 	const router = useRouter();
 	const [collapsed, setCollapsed] = useState(false);
+	const { notifications } = useNotifications(user?.id);
+
+	// Check for Gmail integration issues
+	const gmailIntegrationIssues = notifications.filter(
+		(notification) =>
+			notification.type === 'system' &&
+			(notification.title.includes('Gmail Integration Expired') ||
+				notification.title.includes('Gmail Integration Needs Re-authentication')),
+	);
 
 	const handleCollapse = () => {
 		const newCollapsed = !collapsed;
@@ -60,6 +70,7 @@ export default function Sidebar({
 			label: 'Gmail Setup',
 			icon: Mail,
 			href: '/gmail-setup',
+			hasNotification: gmailIntegrationIssues.length > 0,
 		},
 		{
 			id: 'settings',
@@ -139,7 +150,7 @@ export default function Sidebar({
 							<button
 								key={item.id}
 								onClick={() => router.push(item.href)}
-								className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors w-full text-left ${
+								className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors w-full text-left relative ${
 									collapsed ? 'justify-center' : ''
 								} ${
 									isActive
@@ -148,7 +159,13 @@ export default function Sidebar({
 								}`}
 								title={collapsed ? item.label : undefined}
 							>
-								<Icon className="h-8 w-8" />
+								<div className="relative">
+									<Icon className="h-8 w-8" />
+									{/* Notification badge */}
+									{(item as any).hasNotification && (
+										<div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+									)}
+								</div>
 								{!collapsed && <span className="font-medium">{item.label}</span>}
 							</button>
 						);
@@ -162,10 +179,12 @@ export default function Sidebar({
 							}`}
 						>
 							<div className="relative">
-								<Mail className={`h-8 w-8 ${gmailIntegration ? 'text-green-400' : 'text-red-400'}`} />
+								<Mail
+									className={`h-8 w-8 ${gmailIntegration?.isActive ? 'text-green-400' : 'text-red-400'}`}
+								/>
 								<div
 									className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
-										gmailIntegration ? 'bg-green-400' : 'bg-red-400'
+										gmailIntegration?.isActive ? 'bg-green-400' : 'bg-red-400'
 									}`}
 								/>
 							</div>
@@ -173,9 +192,9 @@ export default function Sidebar({
 								<div className="flex flex-col">
 									<span className="text-xs text-slate-400">Gmail Status</span>
 									<span
-										className={`text-xs font-medium ${gmailIntegration ? 'text-green-400' : 'text-red-400'}`}
+										className={`text-xs font-medium ${gmailIntegration?.isActive ? 'text-green-400' : 'text-red-400'}`}
 									>
-										{gmailIntegration ? 'Active' : 'Inactive'}
+										{gmailIntegration?.isActive ? 'Active' : 'Inactive'}
 									</span>
 								</div>
 							)}
