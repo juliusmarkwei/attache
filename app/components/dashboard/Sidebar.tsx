@@ -6,6 +6,15 @@ import { useState } from 'react';
 import { useNotifications } from '../../hooks/useNotifications';
 import { Button } from '../ui/button';
 
+interface GmailIntegration {
+	_id: string;
+	userId: string;
+	accessToken: string;
+	refreshToken: string;
+	expiryDate: number;
+	isActive: boolean;
+}
+
 interface SidebarProps {
 	isOpen: boolean;
 	onClose: () => void;
@@ -16,7 +25,7 @@ interface SidebarProps {
 		name: string;
 		email: string;
 	} | null;
-	gmailIntegration?: any;
+	gmailIntegration?: GmailIntegration;
 }
 
 export default function Sidebar({
@@ -162,7 +171,7 @@ export default function Sidebar({
 								<div className="relative">
 									<Icon className="h-8 w-8" />
 									{/* Notification badge */}
-									{(item as any).hasNotification && (
+									{item.hasNotification && (
 										<div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
 									)}
 								</div>

@@ -55,10 +55,10 @@ export default function ForgotPasswordPage() {
 						</div>
 						<h3 className="text-xl font-semibold text-white">Check your email</h3>
 						<p className="text-white/80">
-							We've sent a password reset link to <strong>{email}</strong>
+							We&apos;ve sent a password reset link to <strong>{email}</strong>
 						</p>
 						<p className="text-sm text-white/60">
-							The link will expire in 30 minutes. If you don't see the email, check your spam folder.
+							The link will expire in 30 minutes. If you don&apos;t see the email, check your spam folder.
 						</p>
 					</div>
 
@@ -98,7 +98,7 @@ export default function ForgotPasswordPage() {
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
 						/>
 					</div>
 

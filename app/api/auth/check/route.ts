@@ -14,8 +14,6 @@ export async function GET(request: NextRequest) {
 			sessionToken,
 		});
 
-		console.log('Auth check API: Retrieved user from Convex:', user);
-
 		if (!user) {
 			return NextResponse.json({ authenticated: false }, { status: 401 });
 		}
@@ -28,14 +26,12 @@ export async function GET(request: NextRequest) {
 			updatedAt: user.updatedAt,
 		};
 
-		console.log('Auth check API: Retrieved user from Convex:', user);
-		console.log('Auth check API: Returning user data:', userResponse);
-
 		return NextResponse.json({
 			authenticated: true,
 			user: userResponse,
 		});
 	} catch (error) {
+		console.error('Auth check API error:', error);
 		return NextResponse.json({ authenticated: false }, { status: 401 });
 	}
 }

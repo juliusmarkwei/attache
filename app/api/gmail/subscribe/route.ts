@@ -6,18 +6,10 @@ import { Id } from '../../../../convex/_generated/dataModel';
 
 export async function POST(request: NextRequest) {
 	try {
-		console.log('📧 Subscribe endpoint called');
 		const body = await request.json();
 		const { access_token, refresh_token, userId } = body;
-		console.log('📧 Request body:', {
-			hasAccessToken: !!access_token,
-			hasRefreshToken: !!refresh_token,
-			userId: userId,
-		});
 
-		// Check for session token in cookies
 		const sessionToken = request.cookies.get('session_token')?.value;
-		console.log('📧 Session token:', sessionToken ? 'Present' : 'Missing');
 
 		if (!access_token) {
 			return NextResponse.json(
@@ -28,18 +20,14 @@ export async function POST(request: NextRequest) {
 			);
 		}
 
-		// If userId is not provided, try to get it from session token
 		let finalUserId = userId;
-		console.log('📧 Initial userId from request:', userId);
 
 		if (!finalUserId && sessionToken) {
 			try {
-				console.log('📧 Getting user from session token...');
 				const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 				const user = await convex.query(api.auth.getCurrentUser, { sessionToken });
 				if (user) {
 					finalUserId = user._id;
-					console.log('📧 Got user from session:', user._id);
 				} else {
 					console.log('📧 No user found for session token');
 				}
@@ -52,9 +40,6 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
 		}
 
-		console.log('📧 Final user ID:', finalUserId, 'Type:', typeof finalUserId);
-
-		// Initialize Gmail API with the provided access token
 		const auth = new google.auth.OAuth2(
 			process.env.GOOGLE_CLIENT_ID,
 			process.env.GOOGLE_CLIENT_SECRET,
@@ -74,7 +59,7 @@ export async function POST(request: NextRequest) {
 		try {
 			const profile = await gmail.users.getProfile({ userId: 'me' });
 			console.log(`✅ Connected to Gmail account: ${profile.data.emailAddress}`);
-		} catch (error) {
+		} catch {
 			console.log('❌ Access token expired, trying to refresh...');
 
 			// Try to refresh the token
@@ -91,6 +76,7 @@ export async function POST(request: NextRequest) {
 						expiryDate: credentials.expiry_date || Date.now() + 3600000,
 					});
 				} catch (refreshError) {
+					console.error('❌ Refresh token error:', refreshError);
 					return NextResponse.json(
 						{
 							error: 'Access token expired and refresh failed',
@@ -111,7 +97,6 @@ export async function POST(request: NextRequest) {
 		}
 
 		try {
-			console.log('📧 Attempting to set up Gmail watch...');
 			const watchResponse = await gmail.users.watch({
 				userId: 'me',
 				requestBody: {
@@ -119,10 +104,7 @@ export async function POST(request: NextRequest) {
 					labelIds: ['INBOX'],
 				},
 			});
-			console.log('📧 Gmail watch response:', watchResponse.data);
 
-			// Store the integration in the database
-			console.log('📧 Storing integration in database...');
 			const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 			const integrationData = {
 				userId: finalUserId as Id<'users'>, // Cast to Convex ID type
@@ -132,16 +114,7 @@ export async function POST(request: NextRequest) {
 				historyId: watchResponse.data.historyId || '',
 				subscriptionExpiration: watchResponse.data.expiration ? parseInt(watchResponse.data.expiration) : 0,
 			};
-			console.log('📧 Integration data:', {
-				userId: integrationData.userId,
-				hasAccessToken: !!integrationData.accessToken,
-				hasRefreshToken: !!integrationData.refreshToken,
-				expiryDate: integrationData.expiryDate,
-				historyId: integrationData.historyId,
-				subscriptionExpiration: integrationData.subscriptionExpiration,
-			});
 			await convex.mutation(api.gmail.createGmailIntegration, integrationData);
-			console.log('📧 Integration stored successfully');
 
 			// Get the profile again for the response
 			const profileResponse = await gmail.users.getProfile({ userId: 'me' });

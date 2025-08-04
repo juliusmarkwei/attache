@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
 		});
 
 		if (!code) {
-			// Generate authorization URL with proper redirect
 			const authUrl = auth.generateAuthUrl({
 				access_type: 'offline',
 				scope: [
@@ -31,21 +30,14 @@ export async function GET(request: NextRequest) {
 				redirect_uri: process.env.GOOGLE_REDIRECT_URI,
 			});
 
-			console.log('🔍 Generated auth URL with redirect URI:', process.env.GOOGLE_REDIRECT_URI);
-
 			return NextResponse.json({
 				authUrl,
 				message: 'Visit this URL to authorize Gmail access',
 			});
 		}
 
-		// Log the authorization code for debugging
-		console.log('🔍 Received authorization code:', code.substring(0, 10) + '...');
-		console.log('🔍 Using redirect URI:', process.env.GOOGLE_REDIRECT_URI);
-
-		// Check if this code has already been used (simple in-memory check)
 		const codeKey = `used_code_${code}`;
-		if ((global as any)[codeKey]) {
+		if ((global as unknown as Record<string, boolean>)[codeKey]) {
 			console.log('❌ Authorization code already used');
 			return NextResponse.json(
 				{
@@ -58,16 +50,9 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		// Mark this code as used
-		(global as any)[codeKey] = true;
+		(global as unknown as Record<string, boolean>)[codeKey] = true;
 
-		// Exchange code for tokens
 		const { tokens } = await auth.getToken(code);
-
-		console.log('🔍 Successfully exchanged code for tokens');
-
-		// Return tokens directly as JSON
-		console.log('🔍 Returning tokens directly as JSON');
 
 		return NextResponse.json({
 			success: true,
@@ -84,13 +69,6 @@ export async function GET(request: NextRequest) {
 			const errorMessage = error.message.toLowerCase();
 
 			if (errorMessage.includes('invalid_grant')) {
-				console.error('🔍 Invalid grant error details:', {
-					error: error.message,
-					code: (error as any).code,
-					status: (error as any).status,
-					redirectUri: process.env.GOOGLE_REDIRECT_URI,
-				});
-
 				return NextResponse.json(
 					{
 						error: 'Authorization code expired or already used',

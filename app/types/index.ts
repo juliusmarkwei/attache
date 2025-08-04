@@ -50,7 +50,7 @@ export interface Document {
 	storageId: string;
 	uploadedAt: number;
 	uploadedBy?: string;
-	metadata?: any;
+	metadata?: unknown;
 	company?: Company;
 }
 
@@ -72,7 +72,7 @@ export interface OtpInputProps {
 }
 
 // API Response types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
 	success: boolean;
 	data?: T;
 	error?: string;

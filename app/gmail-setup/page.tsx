@@ -2,9 +2,10 @@
 
 import { useQuery } from 'convex/react';
 import { AlertCircle, CheckCircle, ExternalLink, Loader2, Mail } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../convex/_generated/api';
+import { Id } from '../../convex/_generated/dataModel';
 import Sidebar from '../components/dashboard/Sidebar';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -28,18 +29,16 @@ interface AuthStatus {
 
 export default function GmailSetup() {
 	const { user, loading, authChecked, handleLogout } = useAuth();
-	const gmailIntegration = useQuery(api.gmail.getGmailIntegration, user?.id ? { userId: user.id as any } : 'skip');
+	const gmailIntegration = useQuery(
+		api.gmail.getGmailIntegration,
+		user?.id ? { userId: user.id as Id<'users'> } : 'skip',
+	);
 	const [status, setStatus] = useState<AuthStatus>({
 		step: 'initial',
 		message: 'Ready to configure Gmail integration',
 	});
 	const [sidebarOpen, setSidebarOpen] = useState(false);
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-	const userIdRef = useRef<string | null>(null);
-
-	useEffect(() => {
-		userIdRef.current = user?.id || null;
-	}, [user?.id]);
 
 	useEffect(() => {
 		const urlParams = new URLSearchParams(window.location.search);
@@ -47,26 +46,13 @@ export default function GmailSetup() {
 		const hasSuccess = urlParams.get('success') === 'true';
 		const hasTokenId = urlParams.get('tokenId');
 
-		console.log('🔍 Gmail setup useEffect triggered:', {
-			hasCode: !!hasCode,
-			hasSuccess,
-			hasTokenId: !!hasTokenId,
-			user: !!user,
-			userId: user?.id,
-			loading,
-			authChecked,
-			hasGmailIntegration: !!gmailIntegration,
-		});
-
 		// Wait for auth check to complete before making decisions
 		if (loading || !authChecked) {
-			console.log('🔍 Waiting for auth check to complete...');
 			return;
 		}
 
 		// If user has an active Gmail integration and no OAuth flow in progress, show completed state
 		if (user?.id && gmailIntegration && gmailIntegration.isActive && !hasCode && !hasSuccess && !hasTokenId) {
-			console.log('🔍 User has active Gmail integration, showing completed state');
 			setStatus({
 				step: 'completed',
 				message: 'Gmail integration is already active!',
@@ -82,7 +68,6 @@ export default function GmailSetup() {
 
 		// If user has an inactive Gmail integration, show re-authentication needed
 		if (user?.id && gmailIntegration && !gmailIntegration.isActive && !hasCode && !hasSuccess && !hasTokenId) {
-			console.log('🔍 User has inactive Gmail integration, showing re-authentication needed');
 			setStatus({
 				step: 'error',
 				message: 'Gmail integration needs re-authentication',
@@ -93,7 +78,6 @@ export default function GmailSetup() {
 
 		// If user is not authenticated but has an authorization code, store it and redirect to login
 		if (!user && hasCode && !hasTokenId) {
-			console.log('🔍 User not authenticated with code, storing code and redirecting to login');
 			// Store the code in sessionStorage for later processing
 			sessionStorage.setItem('pending_gmail_code', hasCode);
 			const currentUrl = window.location.href;
@@ -104,18 +88,14 @@ export default function GmailSetup() {
 		// If user is not authenticated but has tokenId, it means the API redirect happened
 		// but the user session expired. We need to wait for authentication.
 		if (!user && hasTokenId) {
-			console.log('🔍 User not authenticated but has tokenId, waiting for auth...');
 			return;
 		}
 
 		// If user is authenticated, handle the OAuth flow
 		if (user?.id) {
-			console.log('🔍 User authenticated, handling OAuth flow');
-
 			// Check for pending code from sessionStorage
 			const pendingCode = sessionStorage.getItem('pending_gmail_code');
 			if (pendingCode) {
-				console.log('🔍 Found pending code in sessionStorage, processing...');
 				sessionStorage.removeItem('pending_gmail_code');
 				// Process the pending code
 				handleAuthCallbackWithCode(pendingCode);
@@ -123,18 +103,14 @@ export default function GmailSetup() {
 			}
 
 			if (hasSuccess && hasTokenId) {
-				console.log('🔍 Handling auth success with tokenId');
 				handleAuthSuccessWithTokenId();
 			} else if (hasCode) {
-				console.log('🔍 Handling auth callback with code');
 				// If we have a code but no success, it means the redirect didn't work
 				// Let's handle the code directly
 				handleAuthCallback();
 			} else if (hasTokenId) {
-				console.log('🔍 Handling auth success with tokenId');
 				handleAuthSuccessWithTokenId();
 			} else {
-				console.log('🔍 No code or success parameters found, checking for delayed redirect...');
 				// Check if we're in the middle of a redirect
 				setTimeout(() => {
 					const currentUrlParams = new URLSearchParams(window.location.search);
@@ -142,69 +118,15 @@ export default function GmailSetup() {
 					const currentTokenId = currentUrlParams.get('tokenId');
 					const currentCode = currentUrlParams.get('code');
 
-					console.log(
-						'🔍 Delayed check - success:',
-						currentSuccess,
-						'tokenId:',
-						currentTokenId,
-						'code:',
-						currentCode,
-					);
-
 					if (currentSuccess === 'true' && currentTokenId) {
-						console.log('🔍 Found tokenId after delay, handling auth success');
 						handleAuthSuccessWithTokenId();
 					} else if (currentCode) {
-						console.log('🔍 Found code after delay, handling auth callback');
 						handleAuthCallback();
 					}
 				}, 2000);
 			}
 		}
 	}, [user?.id, loading, authChecked, gmailIntegration]);
-
-	// Add a separate effect to log when the component mounts
-	useEffect(() => {
-		console.log('🔍 Gmail setup page mounted, current URL:', window.location.href);
-		console.log('🔍 Current user:', user?.id);
-
-		// Log all URL parameters for debugging
-		const urlParams = new URLSearchParams(window.location.search);
-		const allParams: Record<string, string> = {};
-		urlParams.forEach((value, key) => {
-			allParams[key] = value.substring(0, 20) + '...'; // Truncate long values
-		});
-		console.log('🔍 All URL parameters:', allParams);
-
-		// Check if we have a tokenId and user is authenticated
-		const tokenId = urlParams.get('tokenId');
-		const success = urlParams.get('success');
-		if (user && success === 'true' && tokenId) {
-			console.log('🔍 User authenticated with tokenId, processing...');
-			handleAuthSuccessWithTokenId();
-		}
-	}, [user, loading, authChecked]);
-
-	// Add a separate effect to monitor URL changes
-	useEffect(() => {
-		const handleUrlChange = () => {
-			console.log('🔍 URL changed to:', window.location.href);
-			const urlParams = new URLSearchParams(window.location.search);
-			const tokenId = urlParams.get('tokenId');
-			const success = urlParams.get('success');
-			console.log('🔍 URL change - tokenId:', tokenId, 'success:', success);
-		};
-
-		// Listen for URL changes
-		window.addEventListener('popstate', handleUrlChange);
-
-		// Check current URL immediately
-		handleUrlChange();
-
-		return () => {
-			window.removeEventListener('popstate', handleUrlChange);
-		};
-	}, []);
 
 	if (!user) {
 		return null;
@@ -213,6 +135,7 @@ export default function GmailSetup() {
 	const startAuth = async () => {
 		window.history.replaceState({}, document.title, window.location.pathname);
 
+		// Clear any processed codes
 		for (let i = 0; i < sessionStorage.length; i++) {
 			const key = sessionStorage.key(i);
 			if (key && key.startsWith('processed_')) {
@@ -261,17 +184,10 @@ export default function GmailSetup() {
 	};
 
 	const handleAuthSuccessWithTokenId = async () => {
-		console.log('🔍 handleAuthSuccessWithTokenId called');
-		console.log('🔍 Current URL:', window.location.href);
-
 		const urlParams = new URLSearchParams(window.location.search);
 		const tokenId = urlParams.get('tokenId');
 
-		console.log('🔍 handleAuthSuccessWithTokenId called with tokenId:', tokenId);
-
 		if (!tokenId) {
-			console.log('❌ No tokenId found in URL parameters');
-			console.log('❌ All URL parameters:', Array.from(urlParams.entries()));
 			setStatus({
 				step: 'error',
 				message: 'Authorization failed',
@@ -290,7 +206,6 @@ export default function GmailSetup() {
 
 			if (response.ok && data.tokens) {
 				const tokens = data.tokens;
-				console.log('🔍 Retrieved tokens from API');
 
 				setStatus({
 					step: 'authorized',
@@ -300,7 +215,6 @@ export default function GmailSetup() {
 
 				setTimeout(() => subscribeToGmail(tokens.access_token), 1000);
 			} else {
-				console.log('❌ Failed to retrieve tokens from API');
 				setStatus({
 					step: 'error',
 					message: 'Authorization failed',
@@ -308,7 +222,6 @@ export default function GmailSetup() {
 				});
 			}
 		} catch (error) {
-			console.log('❌ Error retrieving tokens:', error);
 			setStatus({
 				step: 'error',
 				message: 'Authorization failed',
@@ -318,24 +231,12 @@ export default function GmailSetup() {
 	};
 
 	const handleAuthSuccess = () => {
-		console.log('🔍 handleAuthSuccess called');
-		console.log('🔍 Current URL:', window.location.href);
-
 		const urlParams = new URLSearchParams(window.location.search);
 		const accessToken = urlParams.get('access_token');
 		const refreshToken = urlParams.get('refresh_token');
 		const expiryDate = urlParams.get('expiry_date');
 
-		console.log('🔍 handleAuthSuccess called with tokens:', {
-			hasAccessToken: !!accessToken,
-			hasRefreshToken: !!refreshToken,
-			hasExpiryDate: !!expiryDate,
-			accessTokenLength: accessToken?.length || 0,
-		});
-
 		if (!accessToken) {
-			console.log('❌ No access token found in URL parameters');
-			console.log('❌ All URL parameters:', Array.from(urlParams.entries()));
 			setStatus({
 				step: 'error',
 				message: 'Authorization failed',
@@ -353,7 +254,6 @@ export default function GmailSetup() {
 			expiry_date: parseInt(expiryDate || '0'),
 		};
 
-		console.log('🔍 Setting status to authorized and calling subscribeToGmail');
 		setStatus({
 			step: 'authorized',
 			message: 'Gmail access authorized successfully!',
@@ -364,16 +264,12 @@ export default function GmailSetup() {
 	};
 
 	const handleAuthCallbackWithCode = async (code: string) => {
-		console.log('🔍 handleAuthCallbackWithCode called with code:', code ? code.substring(0, 10) + '...' : 'none');
-
 		if (!code) {
-			console.log('❌ No code provided');
 			return;
 		}
 
 		const processedCodeKey = `processed_${code}`;
 		if (sessionStorage.getItem(processedCodeKey)) {
-			console.log('❌ Code already processed, skipping');
 			return;
 		}
 
@@ -385,13 +281,8 @@ export default function GmailSetup() {
 		});
 
 		try {
-			console.log('🔍 Making API call to exchange code for tokens');
-
 			const response = await fetch(`/api/gmail/auth?code=${code}`);
-			console.log('🔍 API response status:', response.status);
-
 			const data = await response.json();
-			console.log('🔍 API response data:', data);
 
 			if (response.ok && data.success && data.access_token) {
 				const tokens = {
@@ -399,8 +290,6 @@ export default function GmailSetup() {
 					refresh_token: data.refresh_token,
 					expiry_date: data.expiry_date,
 				};
-
-				console.log('🔍 Successfully received tokens');
 
 				setStatus({
 					step: 'authorized',
@@ -410,14 +299,12 @@ export default function GmailSetup() {
 
 				setTimeout(() => subscribeToGmail(tokens.access_token), 1000);
 			} else {
-				console.log('🔍 API call failed:', data);
 				setStatus({
 					step: 'error',
 					message: data.message || 'Failed to complete authorization',
 				});
 			}
 		} catch (error) {
-			console.error('🔍 Error in handleAuthCallbackWithCode:', error);
 			setStatus({
 				step: 'error',
 				message: 'Failed to complete authorization',
@@ -430,16 +317,12 @@ export default function GmailSetup() {
 		const urlParams = new URLSearchParams(window.location.search);
 		const code = urlParams.get('code');
 
-		console.log('🔍 handleAuthCallback called with code:', code ? code.substring(0, 10) + '...' : 'none');
-
 		if (!code) {
-			console.log('❌ No code found in URL parameters');
 			return;
 		}
 
 		const processedCodeKey = `processed_${code}`;
 		if (sessionStorage.getItem(processedCodeKey)) {
-			console.log('❌ Code already processed, skipping');
 			return;
 		}
 
@@ -451,13 +334,8 @@ export default function GmailSetup() {
 		});
 
 		try {
-			console.log('🔍 Making API call to exchange code for tokens');
-
 			const response = await fetch(`/api/gmail/auth?code=${code}`);
-			console.log('🔍 API response status:', response.status);
-
 			const data = await response.json();
-			console.log('🔍 API response data:', data);
 
 			if (response.ok && data.success && data.access_token) {
 				const tokens = {
@@ -465,8 +343,6 @@ export default function GmailSetup() {
 					refresh_token: data.refresh_token,
 					expiry_date: data.expiry_date,
 				};
-
-				console.log('🔍 Successfully received tokens');
 
 				setStatus({
 					step: 'authorized',
@@ -548,22 +424,21 @@ export default function GmailSetup() {
 	};
 
 	const subscribeToGmail = async (accessToken?: string) => {
-		console.log('🔍 subscribeToGmail called with accessToken:', !!accessToken);
-
 		setStatus({
 			step: 'subscribing',
-			message: 'Setting up Gmail push notifications...',
+			message: 'Setting up Gmail notifications...',
 		});
 
-		try {
-			console.log('🔍 Making subscription request with:', {
-				hasAccessToken: !!accessToken,
-				hasTokens: !!status.tokens,
-				userId: user?.id,
-				userIdType: typeof user?.id,
-				userObject: user,
+		if (!user?.id) {
+			setStatus({
+				step: 'error',
+				message: 'User not authenticated. Please log in again.',
+				error: 'User ID not available',
 			});
+			return;
+		}
 
+		try {
 			const response = await fetch('/api/gmail/subscribe', {
 				method: 'POST',
 				headers: {
@@ -576,9 +451,7 @@ export default function GmailSetup() {
 				}),
 			});
 
-			console.log('🔍 Subscription response status:', response.status);
 			const data = await response.json();
-			console.log('🔍 Subscription response data:', data);
 
 			if (response.ok && data.success) {
 				setStatus({
@@ -636,7 +509,8 @@ export default function GmailSetup() {
 				onLogout={handleLogout}
 				onCollapsedChange={setSidebarCollapsed}
 				user={user}
-				gmailIntegration={gmailIntegration}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				gmailIntegration={gmailIntegration as any}
 			/>
 
 			<div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
@@ -773,7 +647,7 @@ export default function GmailSetup() {
 									</div>
 									<div className="text-center">
 										<p className="text-sm text-slate-400">
-											You'll be redirected back here after authorization.
+											You&apos;ll be redirected back here after authorization.
 										</p>
 									</div>
 								</div>

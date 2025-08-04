@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
 		} else {
 			return NextResponse.json({ error: 'Failed to create account' }, { status: 500 });
 		}
-	} catch (error: any) {
-		return NextResponse.json({ error: error.message || 'Failed to register user' }, { status: 500 });
+	} catch (error) {
+		return NextResponse.json(
+			{ error: error instanceof Error ? error.message : 'Failed to register user' },
+			{ status: 500 },
+		);
 	}
 }

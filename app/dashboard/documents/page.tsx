@@ -177,7 +177,12 @@ export default function DocumentsPage() {
 	// Show loading state while data is being fetched
 	if (!documents || !companies) {
 		return (
-			<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
+			<DashboardLayout
+				onLogout={handleLogout}
+				user={user}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				gmailIntegration={gmailIntegration as any}
+			>
 				<div className="space-y-6">
 					{/* Header */}
 					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -265,7 +270,12 @@ export default function DocumentsPage() {
 	}
 
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
+		<DashboardLayout
+			onLogout={handleLogout}
+			user={user}
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			gmailIntegration={gmailIntegration as any}
+		>
 			<div className="space-y-6">
 				{/* Header */}
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

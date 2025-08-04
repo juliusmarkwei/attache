@@ -2,6 +2,7 @@ import { ConvexHttpClient } from 'convex/browser';
 import { google } from 'googleapis';
 import { NextRequest, NextResponse } from 'next/server';
 import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 import { NotificationService } from '../../../services/notificationService';
 
 const gmail = google.gmail('v1');
@@ -13,11 +14,6 @@ const auth = new google.auth.OAuth2(
 );
 
 function validateEnvironment() {
-	console.log('🔧 Validating environment variables...');
-	console.log('🔧 GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing');
-	console.log('🔧 GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Missing');
-	console.log('🔧 NEXT_PUBLIC_CONVEX_URL:', process.env.NEXT_PUBLIC_CONVEX_URL ? 'Set' : 'Missing');
-
 	if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 		throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables are required');
 	}
@@ -25,27 +21,22 @@ function validateEnvironment() {
 
 export async function POST(request: NextRequest) {
 	try {
-		console.log('📧 Gmail webhook received');
 		validateEnvironment();
 
 		const body = await request.json();
-		console.log('📧 Webhook body:', JSON.stringify(body, null, 2));
 
 		if (body.message && body.message.data) {
 			try {
 				const decodedData = Buffer.from(body.message.data, 'base64').toString('utf-8');
 				const gmailData = JSON.parse(decodedData);
-				console.log('📧 Decoded Gmail data:', JSON.stringify(gmailData, null, 2));
 
 				if (gmailData.historyId) {
-					console.log('📧 Processing Gmail history with ID:', gmailData.historyId);
 					await processGmailHistory(gmailData.historyId);
 				}
 			} catch (error) {
 				console.error('❌ Error processing Gmail webhook:', error);
 			}
 		} else if (body.historyId) {
-			console.log('📧 Processing Gmail history with ID:', body.historyId);
 			await processGmailHistory(body.historyId);
 		} else {
 			console.log('⚠️ No valid historyId found in webhook body');
@@ -53,7 +44,6 @@ export async function POST(request: NextRequest) {
 
 		return NextResponse.json({ success: true });
 	} catch (error) {
-		console.error('❌ Webhook error:', error);
 		return NextResponse.json(
 			{
 				error: 'Internal server error',
@@ -81,7 +71,27 @@ function cleanupProcessedMessages() {
 	}
 }
 
-function hasAttachments(message: any): boolean {
+interface GmailMessagePart {
+	filename?: string | null;
+	body?: {
+		attachmentId?: string | null;
+	};
+	parts?: GmailMessagePart[];
+}
+
+interface GmailMessagePayload {
+	parts?: GmailMessagePart[];
+	filename?: string | null;
+	body?: {
+		attachmentId?: string | null;
+	};
+}
+
+interface GmailMessage {
+	payload?: GmailMessagePayload;
+}
+
+function hasAttachments(message: GmailMessage): boolean {
 	const parts = message.payload?.parts || [];
 
 	// Check main parts for attachments
@@ -111,6 +121,7 @@ function hasAttachments(message: any): boolean {
 async function processGmailHistory(historyId: string) {
 	try {
 		console.log('📧 Starting Gmail history processing for historyId:', historyId);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		let activeIntegrations: any[] = [];
 		let retryCount = 0;
 		const maxRetries = 3;
@@ -119,14 +130,11 @@ async function processGmailHistory(historyId: string) {
 			try {
 				const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 				activeIntegrations = await convexClient.query(api.gmail.getActiveGmailIntegrations);
-				console.log('📧 Found active integrations:', activeIntegrations.length);
 				break;
 			} catch (error) {
 				retryCount++;
-				console.error(`❌ Error fetching active integrations (attempt ${retryCount}):`, error);
 
 				if (retryCount >= maxRetries) {
-					console.error('❌ Max retries reached for fetching active integrations');
 					return;
 				}
 
@@ -144,21 +152,18 @@ async function processGmailHistory(historyId: string) {
 				});
 
 				try {
-					console.log(`🔍 Testing Gmail API access for integration ${integration._id}`);
-					const profile = await gmail.users.getProfile({ auth: auth, userId: 'me' });
-					console.log(`✅ Gmail API access successful for integration ${integration._id}`);
+					await gmail.users.getProfile({ auth: auth, userId: 'me' });
 
 					// Send notification that integration is working (only once per session)
 					try {
 						const sessionKey = `integration_working_${integration._id}`;
-						if (!(global as any)[sessionKey]) {
+						if (!(global as unknown as Record<string, boolean>)[sessionKey]) {
 							await NotificationService.addSystemNotification(
 								integration.userId,
 								'Gmail Integration Working',
 								'Your Gmail integration is working properly and processing emails automatically.',
 							);
-							(global as any)[sessionKey] = true;
-							console.log(`📧 Sent working notification to user ${integration.userId}`);
+							(global as unknown as Record<string, boolean>)[sessionKey] = true;
 						}
 					} catch (error) {
 						console.error(`❌ Error sending working notification:`, error);
@@ -348,23 +353,19 @@ async function processEmail(messageId: string, userId?: string) {
 		const headers = message.payload?.headers;
 
 		if (!headers) {
-			console.log('⚠️ No headers found in email message');
 			return;
 		}
 
 		// Extract email subject and sender for debugging
-		const subject = headers.find((h: any) => h.name === 'Subject')?.value || '';
-		const from = headers.find((h: any) => h.name === 'From')?.value || '';
-		const date = headers.find((h: any) => h.name === 'Date')?.value || '';
+		const subject = headers.find((h) => h.name === 'Subject')?.value || '';
+		const from = headers.find((h) => h.name === 'From')?.value || '';
+		const date = headers.find((h) => h.name === 'Date')?.value || '';
 		console.log(`📧 Email details - Subject: "${subject}", From: "${from}"`);
 
 		// Check if email has attachments BEFORE processing
 		if (!hasAttachments(message)) {
-			console.log(`📧 Skipping email ${messageId} - no attachments found (no company will be created)`);
 			return;
 		}
-
-		console.log(`📎 Email ${messageId} has attachments - processing company and documents...`);
 
 		// Extract clean email address from "Name <email@domain.com>" format
 		const cleanEmail = extractEmailFromString(from);
@@ -376,11 +377,8 @@ async function processEmail(messageId: string, userId?: string) {
 		}
 
 		if (!companyName) {
-			console.log('⚠️ Could not extract company name from email');
 			return;
 		}
-
-		console.log(`🏢 Extracted company: ${companyName} from email: ${cleanEmail}`);
 
 		// Initialize Convex client
 		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
@@ -394,7 +392,7 @@ async function processEmail(messageId: string, userId?: string) {
 			const companyId = await convexClient.mutation(api.companies.createCompany, {
 				name: companyName,
 				email: cleanEmail,
-				ownerId: userId as any,
+				ownerId: userId as Id<'users'>,
 				metadata: {
 					source: 'gmail',
 					firstEmailSubject: subject,
@@ -440,7 +438,6 @@ async function processEmail(messageId: string, userId?: string) {
 		}
 
 		cleanupProcessedMessages();
-		console.log(`✅ Successfully processed email ${messageId} with attachments`);
 	} catch (error) {
 		console.error(`❌ Error processing email ${messageId}:`, error);
 	}
@@ -539,6 +536,7 @@ function extractCompanyFromSubject(subject: string): string | null {
 	return null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function processAttachments(message: any, companyId: string, uploadedBy: string, userId?: string) {
 	try {
 		const parts = message.payload?.parts || [];
@@ -569,6 +567,7 @@ async function processAttachments(message: any, companyId: string, uploadedBy: s
 	}
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function processAttachment(part: any, companyId: string, uploadedBy: string, messageId: string, userId?: string) {
 	// Create unique identifier for this attachment
 	const attachmentId = `${messageId}_${part.body.attachmentId}`;
@@ -624,7 +623,6 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 		}
 
 		const buffer = Buffer.from(attachmentData, 'base64');
-		console.log(`📎 Downloaded attachment: ${part.filename} (${buffer.length} bytes)`);
 
 		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -645,7 +643,7 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 		const { storageId } = await uploadResponse.json();
 
 		await convexClient.mutation(api.documents.addDocumentToCompany, {
-			companyId: companyId as any,
+			companyId: companyId as Id<'companies'>,
 			filename: part.filename,
 			originalName: part.filename,
 			contentType: part.mimeType || 'application/octet-stream',
@@ -662,7 +660,7 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 		if (userId) {
 			try {
 				const company = await convexClient.query(api.companies.getCompanyById, {
-					companyId: companyId as any,
+					companyId: companyId as Id<'companies'>,
 				});
 
 				if (company) {
@@ -676,7 +674,6 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 		// Mark this attachment as processed
 		processedAttachments.add(attachmentId);
 		cleanupProcessedMessages();
-		console.log(`✅ Successfully processed attachment: ${part.filename}`);
 	} catch (error) {
 		console.error(`❌ Error processing attachment ${part.filename}:`, error);
 	}

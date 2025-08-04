@@ -5,19 +5,22 @@ import { Building2, ChevronLeft, ChevronRight, Mail, MapPin, Phone, Search } fro
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
-
 import { useAuth } from '../../hooks/useAuth';
 
 export default function CompaniesPage() {
 	const { user, handleLogout } = useAuth();
 	const router = useRouter();
 
-	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as any } : 'skip');
-	const gmailIntegration = useQuery(api.gmail.getGmailIntegration, user?.id ? { userId: user.id as any } : 'skip');
+	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as Id<'users'> } : 'skip');
+	const gmailIntegration = useQuery(
+		api.gmail.getGmailIntegration,
+		user?.id ? { userId: user.id as Id<'users'> } : 'skip',
+	);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
 	const itemsPerPage = 12;
@@ -37,7 +40,12 @@ export default function CompaniesPage() {
 
 	if (!companies) {
 		return (
-			<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
+			<DashboardLayout
+				onLogout={handleLogout}
+				user={user}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				gmailIntegration={gmailIntegration as any}
+			>
 				<div className="space-y-6">
 					{/* Header */}
 					<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -99,7 +107,12 @@ export default function CompaniesPage() {
 	}
 
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
+		<DashboardLayout
+			onLogout={handleLogout}
+			user={user}
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			gmailIntegration={gmailIntegration as any}
+		>
 			<div className="space-y-6">
 				{/* Header */}
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

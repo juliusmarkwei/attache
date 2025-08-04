@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 		const result = await convex.query(api.auth.verifyResetToken, { token });
 
 		return NextResponse.json(result);
-	} catch (error: any) {
+	} catch (error) {
 		console.error('Token verification error:', error);
 		return NextResponse.json({ valid: false });
 	}

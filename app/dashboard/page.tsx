@@ -9,6 +9,7 @@ import DashboardLayout from '../components/dashboard/DashboardLayout';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 
+import { Id } from '../../convex/_generated/dataModel';
 import { useAuth } from '../hooks/useAuth';
 
 // Simple chart component for statistics
@@ -33,7 +34,7 @@ function SimpleChart({ data, title, color }: { data: number[]; title: string; co
 }
 
 export default function Dashboard() {
-	const { user, loading, authChecked, handleLogout } = useAuth();
+	const { user, handleLogout } = useAuth();
 	const router = useRouter();
 
 	// Helper function to get file icon based on content type
@@ -47,9 +48,12 @@ export default function Dashboard() {
 		return <FileType className="h-5 w-5 text-slate-400" />;
 	};
 
-	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as any } : 'skip');
-	const documents = useQuery(api.documents.getAllDocuments, user?.id ? { userId: user.id as any } : 'skip');
-	const gmailIntegration = useQuery(api.gmail.getGmailIntegration, user?.id ? { userId: user.id as any } : 'skip');
+	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as Id<'users'> } : 'skip');
+	const documents = useQuery(api.documents.getAllDocuments, user?.id ? { userId: user.id as Id<'users'> } : 'skip');
+	const gmailIntegration = useQuery(
+		api.gmail.getGmailIntegration,
+		user?.id ? { userId: user.id as Id<'users'> } : 'skip',
+	);
 
 	const [showGmailBanner, setShowGmailBanner] = useState(true);
 	const [showActiveBanner, setShowActiveBanner] = useState(true);
@@ -98,7 +102,12 @@ export default function Dashboard() {
 
 	if (companies === undefined || documents === undefined || gmailIntegration === undefined) {
 		return (
-			<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
+			<DashboardLayout
+				onLogout={handleLogout}
+				user={user}
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				gmailIntegration={gmailIntegration as any}
+			>
 				<div className="space-y-6">
 					{/* Header */}
 					<div className="flex items-center justify-between">
@@ -194,7 +203,12 @@ export default function Dashboard() {
 	};
 
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
+		<DashboardLayout
+			onLogout={handleLogout}
+			user={user}
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			gmailIntegration={gmailIntegration as any}
+		>
 			{/* Dashboard Content */}
 			<div className="space-y-6">
 				{/* Header */}
@@ -202,7 +216,7 @@ export default function Dashboard() {
 					<div>
 						<h1 className="text-3xl font-bold text-white">Dashboard</h1>
 						<p className="text-slate-400 mt-1">
-							Welcome back! Here's an overview of your account activity.
+							Welcome back! Here&apos;s an overview of your account activity.
 						</p>
 					</div>
 				</div>

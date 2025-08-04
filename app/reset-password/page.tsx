@@ -2,13 +2,13 @@
 
 import { CheckCircle, Eye, EyeOff, Loader2, Lock, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/auth/AuthLayout';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
-export default function ResetPasswordPage() {
+function ResetPasswordPage() {
 	const [passwordData, setPasswordData] = useState({
 		password: '',
 		confirmPassword: '',
@@ -181,7 +181,7 @@ export default function ResetPasswordPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
 						/>
 						<button
 							type="button"
@@ -205,7 +205,7 @@ export default function ResetPasswordPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
 						/>
 						<button
 							type="button"
@@ -233,5 +233,13 @@ export default function ResetPasswordPage() {
 				</form>
 			</div>
 		</AuthLayout>
+	);
+}
+
+export default function ResetPasswordPageWithSuspense() {
+	return (
+		<Suspense>
+			<ResetPasswordPage />
+		</Suspense>
 	);
 }

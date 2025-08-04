@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 import DashboardLayout from '../../../components/dashboard/DashboardLayout';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
@@ -20,8 +21,12 @@ export default function CompanyDetails() {
 	const router = useRouter();
 	const { user, loading, authChecked, handleLogout } = useAuth();
 
-	const company = useQuery(api.companies.getCompanyById, { companyId: id as any });
-	const documents = useQuery(api.documents.getDocumentsByCompany, { companyId: id as any });
+	const company = useQuery(api.companies.getCompanyById, { companyId: id as Id<'companies'> });
+	const documents = useQuery(api.documents.getDocumentsByCompany, { companyId: id as Id<'companies'> });
+	const gmailIntegration = useQuery(
+		api.gmail.getGmailIntegration,
+		user?.id ? { userId: user.id as Id<'users'> } : 'skip',
+	);
 	const updateCompanyMutation = useMutation(api.companies.updateCompany);
 	const deleteCompanyMutation = useMutation(api.companies.deleteCompany);
 
@@ -146,7 +151,12 @@ export default function CompanyDetails() {
 	const documentCount = documents?.length || 0;
 
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user}>
+		<DashboardLayout
+			onLogout={handleLogout}
+			user={user}
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			gmailIntegration={gmailIntegration as any}
+		>
 			<div className="space-y-6">
 				{/* Header */}
 				<div className="flex items-center justify-between">

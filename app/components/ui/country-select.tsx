@@ -1,6 +1,6 @@
 'use client';
 
-import Select from 'react-select';
+import Select, { StylesConfig } from 'react-select';
 import { getAllCountries } from '../../utils/country-utils';
 
 // Get countries from the library
@@ -16,8 +16,8 @@ interface CountrySelectProps {
 export function CountrySelect({ value, onChange, placeholder = 'Select country', className }: CountrySelectProps) {
 	const selectedCountry = countries.find((country) => country.value === value);
 
-	const customStyles = {
-		control: (provided: any, state: any) => ({
+	const customStyles: StylesConfig<{ flag: string; label: string; value: string }, false> = {
+		control: (provided, state) => ({
 			...provided,
 			backgroundColor: 'rgba(255, 255, 255, 0.1)',
 			borderColor: state.isFocused ? '#FFB900' : '#876F53',
@@ -28,7 +28,7 @@ export function CountrySelect({ value, onChange, placeholder = 'Select country',
 				borderColor: '#FFB900',
 			},
 		}),
-		option: (provided: any, state: any) => ({
+		option: (provided, state) => ({
 			...provided,
 			backgroundColor: state.isSelected
 				? '#FFB900'
@@ -42,7 +42,7 @@ export function CountrySelect({ value, onChange, placeholder = 'Select country',
 				backgroundColor: state.isSelected ? '#FFB900' : 'rgba(255, 185, 0, 0.15)',
 			},
 		}),
-		menu: (provided: any) => ({
+		menu: (provided) => ({
 			...provided,
 			backgroundColor: 'rgba(71, 51, 59, 0.95)',
 			border: '1px solid #876F53',
@@ -50,27 +50,27 @@ export function CountrySelect({ value, onChange, placeholder = 'Select country',
 			backdropFilter: 'blur(10px)',
 			boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
 		}),
-		menuList: (provided: any) => ({
+		menuList: (provided) => ({
 			...provided,
 			padding: '8px 0',
 			maxHeight: '200px',
 		}),
-		singleValue: (provided: any) => ({
+		singleValue: (provided) => ({
 			...provided,
 			color: '#ffffff',
 		}),
-		input: (provided: any) => ({
+		input: (provided) => ({
 			...provided,
 			color: '#ffffff',
 		}),
-		placeholder: (provided: any) => ({
+		placeholder: (provided) => ({
 			...provided,
 			color: 'rgba(255, 255, 255, 0.4)',
 		}),
 		indicatorSeparator: () => ({
 			display: 'none',
 		}),
-		dropdownIndicator: (provided: any) => ({
+		dropdownIndicator: (provided) => ({
 			...provided,
 			color: 'rgba(255, 255, 255, 0.6)',
 			'&:hover': {
@@ -79,7 +79,7 @@ export function CountrySelect({ value, onChange, placeholder = 'Select country',
 		}),
 	};
 
-	const formatOptionLabel = ({ flag, label }: any) => (
+	const formatOptionLabel = ({ flag, label }: { flag: string; label: string }) => (
 		<div className="flex items-center gap-3">
 			<span className="text-lg">{flag}</span>
 			<span>{label}</span>
@@ -89,7 +89,7 @@ export function CountrySelect({ value, onChange, placeholder = 'Select country',
 	return (
 		<Select
 			value={selectedCountry}
-			onChange={(option: any) => onChange(option?.value || '')}
+			onChange={(option) => onChange(option?.value || '')}
 			options={countries}
 			placeholder={placeholder}
 			styles={customStyles}

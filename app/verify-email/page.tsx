@@ -2,12 +2,12 @@
 
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import AuthLayout from '../components/auth/AuthLayout';
 import { Button } from '../components/ui/button';
 
-export default function VerifyEmailPage() {
+function VerifyEmailPage() {
 	const [loading, setLoading] = useState(false);
 	const [verificationStatus, setVerificationStatus] = useState<'loading' | 'success' | 'error' | null>(null);
 	const router = useRouter();
@@ -135,5 +135,13 @@ export default function VerifyEmailPage() {
 				<Loader2 className="h-8 w-8 animate-spin text-[#FFB900]" />
 			</div>
 		</AuthLayout>
+	);
+}
+
+export default function VerifyEmailPageWithSuspense() {
+	return (
+		<Suspense>
+			<VerifyEmailPage />
+		</Suspense>
 	);
 }

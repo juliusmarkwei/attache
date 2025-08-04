@@ -3,7 +3,7 @@
 import { Download, Eye, FileSpreadsheet, FileText, FileType, Image, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './button';
-import DocumentViewer from './document-viewer';
+import EnhancedDocumentViewer from './enhanced-document-viewer';
 
 interface Document {
 	_id: string;
@@ -187,16 +187,15 @@ export default function DocumentList({
 			</div>
 
 			{/* Document Viewer Modal */}
-			{selectedDocument && (
-				<DocumentViewer
-					document={selectedDocument}
-					company={selectedCompany || undefined}
-					onClose={() => {
-						setSelectedDocument(null);
-						setSelectedCompany(null);
-					}}
-				/>
-			)}
+			<EnhancedDocumentViewer
+				isOpen={!!selectedDocument}
+				onClose={() => {
+					setSelectedDocument(null);
+					setSelectedCompany(null);
+				}}
+				document={selectedDocument}
+				storageId={selectedDocument?.storageId || ''}
+			/>
 		</>
 	);
 }

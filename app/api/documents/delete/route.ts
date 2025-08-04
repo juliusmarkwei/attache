@@ -1,6 +1,7 @@
 import { ConvexHttpClient } from 'convex/browser';
 import { NextRequest, NextResponse } from 'next/server';
 import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 
 export async function DELETE(request: NextRequest) {
 	try {
@@ -18,9 +19,8 @@ export async function DELETE(request: NextRequest) {
 
 		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-		// Get the document to retrieve storageId before deletion
 		const document = await convexClient.query(api.documents.getDocumentById, {
-			documentId: documentId as any,
+			documentId: documentId as Id<'documents'>,
 		});
 
 		if (!document) {
@@ -32,12 +32,10 @@ export async function DELETE(request: NextRequest) {
 			);
 		}
 
-		// Delete the document from the database
 		await convexClient.mutation(api.documents.deleteDocument, {
-			documentId: documentId as any,
+			documentId: documentId as Id<'documents'>,
 		});
 
-		// Delete the file from Convex storage
 		if (document.storageId) {
 			try {
 				await convexClient.mutation(api.files.deleteFile, {

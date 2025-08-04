@@ -29,8 +29,11 @@ export async function POST(request: NextRequest) {
 		} else {
 			return NextResponse.json({ error: 'Failed to reset password' }, { status: 500 });
 		}
-	} catch (error: any) {
+	} catch (error) {
 		console.error('Reset password error:', error);
-		return NextResponse.json({ error: error.message || 'Failed to reset password' }, { status: 500 });
+		return NextResponse.json(
+			{ error: error instanceof Error ? error.message : 'Failed to reset password' },
+			{ status: 500 },
+		);
 	}
 }

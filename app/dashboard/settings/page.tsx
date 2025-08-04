@@ -5,6 +5,7 @@ import { Mail, Save, User } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -16,7 +17,10 @@ import { useAuthStore } from '../../stores/authStore';
 export default function SettingsPage() {
 	const { user, handleLogout, checkAuth } = useAuth();
 	const { setUser } = useAuthStore();
-	const gmailIntegration = useQuery(api.gmail.getGmailIntegration, user?.id ? { userId: user.id as any } : 'skip');
+	const gmailIntegration = useQuery(
+		api.gmail.getGmailIntegration,
+		user?.id ? { userId: user.id as Id<'users'> } : 'skip',
+	);
 
 	const [name, setName] = useState(user?.name || '');
 	const [email, setEmail] = useState(user?.email || '');
@@ -50,7 +54,7 @@ export default function SettingsPage() {
 
 		try {
 			await updateProfile({
-				userId: user.id as any,
+				userId: user.id as Id<'users'>,
 				name: name.trim(),
 			});
 
@@ -75,7 +79,12 @@ export default function SettingsPage() {
 	};
 
 	return (
-		<DashboardLayout onLogout={handleLogout} user={user} gmailIntegration={gmailIntegration}>
+		<DashboardLayout
+			onLogout={handleLogout}
+			user={user}
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			gmailIntegration={gmailIntegration as any}
+		>
 			<div className="space-y-6">
 				{/* Header */}
 				<div>

@@ -87,7 +87,7 @@ export default function LoginPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
 						/>
 					</div>
 
@@ -104,7 +104,7 @@ export default function LoginPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
 						/>
 						<button
 							type="button"
@@ -146,7 +146,7 @@ export default function LoginPage() {
 								onClick={() => router.push('/signup')}
 								className="text-[#FFB900] hover:text-[#FFB900]/80"
 							>
-								Don't have an account? Sign up
+								Don&apos;t have an account? Sign up
 							</Button>
 						</div>
 					</div>

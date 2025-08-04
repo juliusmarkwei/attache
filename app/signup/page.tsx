@@ -84,7 +84,7 @@ export default function SignupPage() {
 						</div>
 						<h3 className="text-xl font-semibold text-white">Check your email</h3>
 						<p className="text-white/80">
-							We've sent a verification link to <strong>{registerData.email}</strong>
+							We&apos;ve sent a verification link to <strong>{registerData.email}</strong>
 						</p>
 						<p className="text-sm text-white/60">
 							Click the link in your email to verify your account and start using Attache.
@@ -137,7 +137,7 @@ export default function SignupPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
 						/>
 					</div>
 
@@ -154,7 +154,7 @@ export default function SignupPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10"
 						/>
 					</div>
 
@@ -171,7 +171,7 @@ export default function SignupPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
 						/>
 						<button
 							type="button"
@@ -195,7 +195,7 @@ export default function SignupPage() {
 								})
 							}
 							required
-							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-white/40 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
+							className="h-12 rounded-lg border-[#876F53] bg-white/10 text-white placeholder-gray-400 focus:border-[#FFB900] focus:ring-[#FFB900] pl-10 pr-10"
 						/>
 						<button
 							type="button"

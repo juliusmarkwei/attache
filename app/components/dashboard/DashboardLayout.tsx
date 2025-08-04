@@ -1,16 +1,36 @@
 'use client';
 
+import { ConvexHttpClient } from 'convex/browser';
 import { Bell, Building2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
 import { useNotifications } from '../../hooks/useNotifications';
 import { Button } from '../ui/button';
 import Sidebar from './Sidebar';
 
+interface GmailIntegration {
+	_id: string;
+	userId: string;
+	accessToken: string;
+	refreshToken: string;
+	expiryDate: number;
+	isActive: boolean;
+}
+
+interface Notification {
+	id: string;
+	title: string;
+	message: string;
+	createdAt: number;
+	type: 'email' | 'document' | 'system';
+}
+
 interface DashboardLayoutProps {
 	children: React.ReactNode;
 	onLogout: () => void;
-	gmailIntegration?: any;
+	gmailIntegration?: GmailIntegration;
 	user?: {
 		id: string;
 		name: string;
@@ -29,16 +49,20 @@ export default function DashboardLayout({ children, onLogout, gmailIntegration, 
 		return null;
 	}
 
-	const handleNotificationClick = async (notification: any) => {
+	const handleNotificationClick = async (notification: Notification) => {
 		// Navigate to documents page
 		router.push('/dashboard/documents');
 
-		// Clear all notifications for this user
+		// Mark notification as read
+		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+		await convexClient.mutation(api.notifications.markNotificationAsRead, {
+			notificationId: notification.id as Id<'notifications'>,
+		});
+
 		if (user?.id) {
 			await clearNotifications(user.id);
 		}
 
-		// Close notification dropdown
 		setShowNotifications(false);
 	};
 
@@ -117,9 +141,9 @@ export default function DashboardLayout({ children, onLogout, gmailIntegration, 
 												<p className="text-slate-400 text-sm">No notifications</p>
 											</div>
 										) : (
-											notifications.map((notification: any) => (
+											notifications.map((notification: Notification) => (
 												<div
-													key={notification._id}
+													key={notification.id}
 													className="p-3 border-b border-slate-700 last:border-b-0 hover:bg-slate-700/50 cursor-pointer transition-colors"
 													onClick={() => handleNotificationClick(notification)}
 												>

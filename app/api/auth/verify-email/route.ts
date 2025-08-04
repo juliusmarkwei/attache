@@ -11,18 +11,15 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'Token is required' }, { status: 400 });
 		}
 
-		// Get user info before verification
 		const user = await convex.query(api.auth.getUserByVerificationToken, { token });
 
 		if (!user) {
 			return NextResponse.json({ error: 'Invalid or expired verification token' }, { status: 400 });
 		}
 
-		// Verify email with token
 		const result = await convex.mutation(api.auth.verifyEmail, { token });
 
 		if (result.success) {
-			// Send welcome email after successful verification
 			try {
 				await sendWelcomeEmail({
 					email: user.email,
@@ -40,8 +37,11 @@ export async function POST(request: NextRequest) {
 		} else {
 			return NextResponse.json({ error: 'Failed to verify email' }, { status: 500 });
 		}
-	} catch (error: any) {
+	} catch (error) {
 		console.error('Email verification error:', error);
-		return NextResponse.json({ error: error.message || 'Failed to verify email' }, { status: 500 });
+		return NextResponse.json(
+			{ error: error instanceof Error ? error.message : 'Failed to verify email' },
+			{ status: 500 },
+		);
 	}
 }

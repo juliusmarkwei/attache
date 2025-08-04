@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
 		} else {
 			return NextResponse.json({ error: 'Login failed' }, { status: 400 });
 		}
-	} catch (error: any) {
-		const errorMessage = error.message || 'Failed to login';
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : 'Failed to login';
 
 		if (errorMessage.includes('User not found')) {
 			return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });

@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
 		} else {
 			return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
 		}
-	} catch (error: any) {
+	} catch (error) {
+		console.error('Forgot password API error:', error);
 		return NextResponse.json({
 			success: true,
 			message: 'If an account with this email exists, a password reset link has been sent.',
