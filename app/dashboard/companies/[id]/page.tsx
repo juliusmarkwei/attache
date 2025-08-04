@@ -48,7 +48,7 @@ export default function CompanyDetails() {
 		}
 	}, [company]);
 
-	if (loading || !authChecked) {
+	if (loading || !authChecked || documents === undefined) {
 		return (
 			<DashboardLayout onLogout={handleLogout} user={user}>
 				<div className="flex items-center justify-center h-64">
@@ -85,7 +85,11 @@ export default function CompanyDetails() {
 	};
 
 	const handleDeleteClick = () => {
-		if (documents && documents.length > 0) {
+		if (documents === undefined) {
+			toast.error('Please wait for documents to load');
+			return;
+		}
+		if (documents.length > 0) {
 			toast.error('Cannot delete company with existing documents');
 			return;
 		}
@@ -184,7 +188,7 @@ export default function CompanyDetails() {
 								</Button>
 							</div>
 						)}
-						{documentCount === 0 && (
+						{documents !== undefined && documents.length === 0 && (
 							<Button
 								onClick={handleDeleteClick}
 								variant="outline"
