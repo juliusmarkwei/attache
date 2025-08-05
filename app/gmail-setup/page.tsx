@@ -231,39 +231,6 @@ export default function GmailSetup() {
 		}
 	};
 
-	const handleAuthSuccess = () => {
-		const urlParams = new URLSearchParams(window.location.search);
-		const accessToken = urlParams.get('access_token');
-		const refreshToken = urlParams.get('refresh_token');
-		const expiryDate = urlParams.get('expiry_date');
-
-		if (!accessToken) {
-			setStatus({
-				step: 'error',
-				message: 'Authorization failed',
-				error: 'No access token received from OAuth flow',
-			});
-			return;
-		}
-
-		// Clear URL parameters
-		window.history.replaceState({}, document.title, window.location.pathname);
-
-		const tokens = {
-			access_token: accessToken,
-			refresh_token: refreshToken || '',
-			expiry_date: parseInt(expiryDate || '0'),
-		};
-
-		setStatus({
-			step: 'authorized',
-			message: 'Gmail access authorized successfully!',
-			tokens,
-		});
-
-		setTimeout(() => subscribeToGmail(tokens.access_token), 1000);
-	};
-
 	const handleAuthCallbackWithCode = async (code: string) => {
 		if (!code) {
 			return;
