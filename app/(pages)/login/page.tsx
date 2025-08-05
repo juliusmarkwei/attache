@@ -4,10 +4,10 @@ import { Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import AuthLayout from '../components/auth/AuthLayout';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { useAuth } from '../hooks/useAuth';
+import AuthLayout from '../../components/auth/AuthLayout';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function LoginPage() {
 	const [loginData, setLoginData] = useState({

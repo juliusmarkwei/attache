@@ -4,9 +4,9 @@ import { CheckCircle, Eye, EyeOff, Loader2, Lock, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import AuthLayout from '../components/auth/AuthLayout';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
+import AuthLayout from '../../components/auth/AuthLayout';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 
 function ResetPasswordPage() {
 	const [passwordData, setPasswordData] = useState({

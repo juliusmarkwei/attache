@@ -4,9 +4,9 @@ import { Eye, EyeOff, Loader2, Lock, Mail, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import AuthLayout from '../components/auth/AuthLayout';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
+import AuthLayout from '../../components/auth/AuthLayout';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 
 export default function SignupPage() {
 	const [registerData, setRegisterData] = useState({

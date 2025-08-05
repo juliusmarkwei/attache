@@ -4,8 +4,8 @@ import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import AuthLayout from '../components/auth/AuthLayout';
-import { Button } from '../components/ui/button';
+import AuthLayout from '../../components/auth/AuthLayout';
+import { Button } from '../../components/ui/button';
 
 function VerifyEmailPage() {
 	const [loading, setLoading] = useState(false);

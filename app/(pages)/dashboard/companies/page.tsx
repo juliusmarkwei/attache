@@ -4,13 +4,13 @@ import { useQuery } from 'convex/react';
 import { Building2, ChevronLeft, ChevronRight, Mail, MapPin, Phone, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { api } from '../../../convex/_generated/api';
-import { Id } from '../../../convex/_generated/dataModel';
-import DashboardLayout from '../../components/dashboard/DashboardLayout';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { Input } from '../../components/ui/input';
-import { useAuth } from '../../hooks/useAuth';
+import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
+import DashboardLayout from '../../../components/dashboard/DashboardLayout';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Input } from '../../../components/ui/input';
+import { useAuth } from '../../../hooks/useAuth';
 
 export default function CompaniesPage() {
 	const { user, handleLogout } = useAuth();

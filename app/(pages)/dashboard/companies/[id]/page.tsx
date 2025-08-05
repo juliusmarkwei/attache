@@ -5,16 +5,16 @@ import { Building2, Calendar, Edit, FileText, Mail, Save, Trash2, X } from 'luci
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { api } from '../../../../convex/_generated/api';
-import { Id } from '../../../../convex/_generated/dataModel';
-import DashboardLayout from '../../../components/dashboard/DashboardLayout';
-import { Button } from '../../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
-import ConfirmationModal from '../../../components/ui/confirmation-modal';
-import DocumentList from '../../../components/ui/document-list';
-import { Input } from '../../../components/ui/input';
-import { Label } from '../../../components/ui/label';
-import { useAuth } from '../../../hooks/useAuth';
+import { api } from '../../../../../convex/_generated/api';
+import { Id } from '../../../../../convex/_generated/dataModel';
+import DashboardLayout from '../../../../components/dashboard/DashboardLayout';
+import { Button } from '../../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
+import ConfirmationModal from '../../../../components/ui/confirmation-modal';
+import DocumentList from '../../../../components/ui/document-list';
+import { Input } from '../../../../components/ui/input';
+import { Label } from '../../../../components/ui/label';
+import { useAuth } from '../../../../hooks/useAuth';
 
 export default function CompanyDetails() {
 	const { id } = useParams();

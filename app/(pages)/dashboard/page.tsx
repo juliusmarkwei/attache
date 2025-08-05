@@ -4,13 +4,12 @@ import { useQuery } from 'convex/react';
 import { Building2, Calendar, Download, FileSpreadsheet, FileText, FileType, Image, Mail, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { api } from '../../convex/_generated/api';
-import DashboardLayout from '../components/dashboard/DashboardLayout';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-
-import { Id } from '../../convex/_generated/dataModel';
-import { useAuth } from '../hooks/useAuth';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import DashboardLayout from '../../components/dashboard/DashboardLayout';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { useAuth } from '../../hooks/useAuth';
 
 // Simple chart component for statistics
 function SimpleChart({ data, title, color }: { data: number[]; title: string; color: string }) {

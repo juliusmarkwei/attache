@@ -4,12 +4,12 @@ import { useMutation, useQuery } from 'convex/react';
 import { AlertCircle, CheckCircle, ExternalLink, Loader2, Mail, PowerOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { api } from '../../convex/_generated/api';
-import { Id } from '../../convex/_generated/dataModel';
-import Sidebar from '../components/dashboard/Sidebar';
-import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
-import { useAuth } from '../hooks/useAuth';
+import { api } from '../../../convex/_generated/api';
+import { Id } from '../../../convex/_generated/dataModel';
+import Sidebar from '../../components/dashboard/Sidebar';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import { useAuth } from '../../hooks/useAuth';
 
 interface AuthStatus {
 	step: 'initial' | 'authorizing' | 'authorized' | 'subscribing' | 'completed' | 'error';

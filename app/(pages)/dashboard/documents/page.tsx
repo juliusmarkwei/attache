@@ -3,16 +3,15 @@
 import { useQuery } from 'convex/react';
 import { Calendar, ChevronLeft, ChevronRight, FileText, Filter, HardDrive, Search } from 'lucide-react';
 import { useState } from 'react';
-import { api } from '../../../convex/_generated/api';
-import DashboardLayout from '../../components/dashboard/DashboardLayout';
-import { Button } from '../../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import ConfirmationModal from '../../components/ui/confirmation-modal';
-import DocumentList from '../../components/ui/document-list';
-import { Input } from '../../components/ui/input';
-
-import { Id } from '../../../convex/_generated/dataModel';
-import { useAuth } from '../../hooks/useAuth';
+import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
+import DashboardLayout from '../../../components/dashboard/DashboardLayout';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import ConfirmationModal from '../../../components/ui/confirmation-modal';
+import DocumentList from '../../../components/ui/document-list';
+import { Input } from '../../../components/ui/input';
+import { useAuth } from '../../../hooks/useAuth';
 
 export default function DocumentsPage() {
 	const { user, handleLogout } = useAuth();
