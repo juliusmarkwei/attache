@@ -31,3 +31,16 @@
 		@apply bg-background text-foreground;
 	}
 }
+
+/* Sonner toast custom styling */
+.toaster [data-sonner-toast] {
+	color: #1a1a1a !important;
+}
+
+.toaster [data-sonner-toast] [data-description] {
+	color: #1a1a1a !important;
+}
+
+.toaster [data-sonner-toast] [data-title] {
+	color: #1a1a1a !important;
+}

@@ -366,6 +366,7 @@ export default function CompanyDetails() {
 				description={`Are you sure you want to delete "${documentToDelete?.name}"? This action cannot be undone.`}
 				confirmText="Delete Document"
 				cancelText="Cancel"
+				isLoading={deletingDocumentId !== null}
 			/>
 		</DashboardLayout>
 	);

@@ -517,6 +517,7 @@ export default function DocumentsPage() {
 					description={`Are you sure you want to delete "${documentToDelete?.name}"? This action cannot be undone.`}
 					confirmText="Delete Document"
 					cancelText="Cancel"
+					isLoading={deletingDocumentId !== null}
 				/>
 			</div>
 		</DashboardLayout>

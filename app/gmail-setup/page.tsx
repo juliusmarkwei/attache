@@ -649,7 +649,7 @@ export default function GmailSetup() {
 													onClick={handleDeactivateGmail}
 													variant="outline"
 													size="lg"
-													className="px-8 py-4 text-lg border-red-500 text-red-400 hover:bg-red-500/10"
+													className="px-8 py-4 text-lg border-red-500 text-red-400"
 												>
 													<PowerOff className="h-5 w-5 mr-3" />
 													Deactivate Gmail
@@ -831,7 +831,7 @@ export default function GmailSetup() {
 											onClick={handleDeactivateGmail}
 											variant="outline"
 											size="lg"
-											className="px-8 py-4 text-lg border-red-500 text-red-400 hover:bg-red-500/10"
+											className="px-8 py-4 text-lg border-red-500 text-red-400"
 										>
 											<PowerOff className="h-5 w-5 mr-3" />
 											Deactivate Gmail

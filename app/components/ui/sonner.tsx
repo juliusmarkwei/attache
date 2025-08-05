@@ -13,16 +13,16 @@ const Toaster = ({ ...props }: ToasterProps) => {
 			style={
 				{
 					'--normal-bg': '#FEB902',
-					'--normal-text': '#47333B',
+					'--normal-text': '#1a1a1a',
 					'--normal-border': '#FEB902',
 					'--success-bg': '#FEB902',
-					'--success-text': '#47333B',
+					'--success-text': '#1a1a1a',
 					'--success-border': '#FEB902',
 					'--error-bg': '#FEB902',
-					'--error-text': '#47333B',
+					'--error-text': '#1a1a1a',
 					'--error-border': '#FEB902',
 					'--warning-bg': '#FEB902',
-					'--warning-text': '#47333B',
+					'--warning-text': '#1a1a1a',
 					'--warning-border': '#FEB902',
 				} as React.CSSProperties
 			}
