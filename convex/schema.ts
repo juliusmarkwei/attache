@@ -40,7 +40,8 @@ export default defineSchema({
 		metadata: v.optional(v.any()),
 	})
 		.index('by_user_company', ['userCompanyId'])
-		.index('by_uploaded_at', ['uploadedAt']),
+		.index('by_uploaded_at', ['uploadedAt'])
+		.index('by_filename_content', ['userCompanyId', 'originalName', 'contentType']), // New index
 
 	notifications: defineTable({
 		title: v.string(),

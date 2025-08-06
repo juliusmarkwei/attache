@@ -147,17 +147,57 @@ export const checkDuplicateDocument = query({
 			return false;
 		}
 
+		// Normalize filename for case-insensitive comparison
+		const normalizedFilename = filename.toLowerCase().trim();
+
 		const existingDocument = await ctx.db
 			.query('documents')
-			.withIndex('by_user_company', (q) => q.eq('userCompanyId', userCompanyId))
-			.filter((q) => q.eq(q.field('originalName'), filename) && q.eq(q.field('contentType'), contentType))
+			.withIndex('by_filename_content', (q) =>
+				q.eq('userCompanyId', userCompanyId).eq('originalName', filename).eq('contentType', contentType),
+			)
 			.first();
 
-		if (existingDocument) {
+		// If no exact match, check for case-insensitive match
+		if (!existingDocument) {
+			const allDocuments = await ctx.db
+				.query('documents')
+				.withIndex('by_user_company', (q) => q.eq('userCompanyId', userCompanyId))
+				.collect();
+
+			const caseInsensitiveMatch = allDocuments.find(
+				(doc) => doc.originalName.toLowerCase() === normalizedFilename && doc.contentType === contentType,
+			);
+
+			if (caseInsensitiveMatch) {
+				console.log(
+					`🔍 Duplicate detected: ${filename} (${contentType}) already exists for user company ${userCompanyId} (user ${userId})`,
+				);
+				return true;
+			}
+		} else {
 			console.log(
 				`🔍 Duplicate detected: ${filename} (${contentType}) already exists for user company ${userCompanyId} (user ${userId})`,
 			);
 		}
+
+		return !!existingDocument;
+	},
+});
+
+// Add a new function to check for duplicates more efficiently
+export const checkDuplicateDocumentByStorageId = query({
+	args: {
+		userCompanyId: v.id('user_companies'),
+		storageId: v.string(),
+	},
+	handler: async (ctx, args) => {
+		const { userCompanyId, storageId } = args;
+
+		const existingDocument = await ctx.db
+			.query('documents')
+			.withIndex('by_user_company', (q) => q.eq('userCompanyId', userCompanyId))
+			.filter((q) => q.eq(q.field('storageId'), storageId))
+			.first();
 
 		return !!existingDocument;
 	},

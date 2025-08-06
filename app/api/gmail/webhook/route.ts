@@ -598,7 +598,7 @@ async function processAttachment(
 		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 		const isDuplicate = await convexClient.query(api.documents.checkDuplicateDocument, {
 			userCompanyId: userCompanyId as Id<'user_companies'>,
-			filename: part.filename,
+			filename: part.filename, // This should match the field being checked
 			contentType: part.mimeType || 'application/octet-stream',
 			userId: userId as Id<'users'>,
 		});
