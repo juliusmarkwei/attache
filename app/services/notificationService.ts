@@ -45,15 +45,6 @@ export class NotificationService {
 		});
 	}
 
-	static async addDocumentNotification(userId: string, fileName: string, companyName: string) {
-		return this.addNotification({
-			title: 'Document Processed',
-			message: `${fileName} added to ${companyName}`,
-			type: 'document',
-			userId,
-		});
-	}
-
 	static async addSystemNotification(userId: string, title: string, message: string) {
 		return this.addNotification({
 			title,

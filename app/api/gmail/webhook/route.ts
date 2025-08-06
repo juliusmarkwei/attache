@@ -158,11 +158,6 @@ async function processGmailHistory(historyId: string) {
 					try {
 						const sessionKey = `integration_working_${integration._id}`;
 						if (!(global as unknown as Record<string, boolean>)[sessionKey]) {
-							await NotificationService.addSystemNotification(
-								integration.userId,
-								'Gmail Integration Working',
-								'Your Gmail integration is working properly and processing emails automatically.',
-							);
 							(global as unknown as Record<string, boolean>)[sessionKey] = true;
 						}
 					} catch (error) {
@@ -193,18 +188,6 @@ async function processGmailHistory(historyId: string) {
 							});
 
 							console.log(`✅ Token refreshed successfully for integration ${integration._id}`);
-
-							// Send notification to user that integration is working
-							try {
-								await NotificationService.addSystemNotification(
-									integration.userId,
-									'Gmail Integration Refreshed',
-									'Your Gmail integration has been automatically refreshed and is working properly.',
-								);
-								console.log(`📧 Sent refresh success notification to user ${integration.userId}`);
-							} catch (error) {
-								console.error(`❌ Error sending refresh success notification:`, error);
-							}
 						} catch (refreshError) {
 							console.error(
 								`❌ Failed to refresh token for integration ${integration._id}:`,
@@ -222,14 +205,6 @@ async function processGmailHistory(historyId: string) {
 								});
 
 								console.log(`🔔 Deactivated integration ${integration._id} due to refresh failure`);
-
-								// Send notification to user
-								await NotificationService.addSystemNotification(
-									integration.userId,
-									'Gmail Integration Needs Re-authentication',
-									'Your Gmail integration failed to refresh and needs to be re-authenticated. Please visit the Gmail Setup page to reconnect your account.',
-								);
-
 								console.log(`📧 Sent re-authentication notification to user ${integration.userId}`);
 							} catch (error) {
 								console.error(`❌ Error deactivating integration or sending notification:`, error);
@@ -376,8 +351,12 @@ async function processEmail(messageId: string, userId?: string) {
 			companyName = extractCompanyFromEmail(from);
 		}
 
+		// If we still can't determine a company name, create a generic "Unknown Company"
 		if (!companyName) {
-			return;
+			companyName = 'Unknown Company';
+			console.log(
+				`⚠️ Could not extract company name from email. Using generic "Unknown Company" for email from ${cleanEmail}`,
+			);
 		}
 
 		// Initialize Convex client
@@ -397,6 +376,8 @@ async function processEmail(messageId: string, userId?: string) {
 					source: 'gmail',
 					firstEmailSubject: subject,
 					firstEmailDate: date,
+					isGeneric: companyName === 'Unknown Company',
+					originalEmail: from,
 				},
 			});
 			company = await convexClient.query(api.companies.getCompanyById, {
@@ -427,13 +408,19 @@ async function processEmail(messageId: string, userId?: string) {
 		// Send system notification that email was processed successfully
 		if (userId) {
 			try {
-				await NotificationService.addSystemNotification(
-					userId,
-					'Email Processed Successfully',
-					`Email "${subject}" was processed and documents were added to ${company.name}.`,
-				);
+				const notificationTitle =
+					company.name === 'Unknown Company'
+						? 'Email Processed (Unknown Company)'
+						: 'Email Processed Successfully';
+
+				const notificationMessage =
+					company.name === 'Unknown Company'
+						? `Email "${subject}" was processed and documents were added to Unknown Company. You may want to rename this company later.`
+						: `Email "${subject}" was processed and documents were added to ${company.name}.`;
+
+				await NotificationService.addSystemNotification(userId, notificationTitle, notificationMessage);
 			} catch (error) {
-				// Handle error silently
+				console.error(`❌ Error sending notification:`, error);
 			}
 		}
 
@@ -489,7 +476,23 @@ function extractCompanyFromEmail(emailString: string): string | null {
 	const domainMatch = emailString.match(/@([^.]+)\./);
 	if (domainMatch && domainMatch[1]) {
 		const domain = domainMatch[1];
+
+		// Skip common generic domains that don't provide meaningful company names
+		const genericDomains = ['gmail', 'yahoo', 'hotmail', 'outlook', 'icloud', 'aol', 'protonmail'];
+		if (genericDomains.includes(domain.toLowerCase())) {
+			return null;
+		}
+
 		// Convert domain to title case for company name
+		// Handle common business domain patterns
+		if (domain.includes('-')) {
+			// Handle domains like "my-company" -> "My Company"
+			return domain
+				.split('-')
+				.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+				.join(' ');
+		}
+
 		return domain.charAt(0).toUpperCase() + domain.slice(1);
 	}
 
@@ -578,7 +581,26 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 	}
 
 	try {
+		// Check for duplicate filename and content type within the same company for this user
+		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+		const isDuplicate = await convexClient.query(api.documents.checkDuplicateDocument, {
+			companyId: companyId as Id<'companies'>,
+			filename: part.filename,
+			contentType: part.mimeType || 'application/octet-stream',
+			userId: userId as Id<'users'>,
+		});
+
+		if (isDuplicate) {
+			await NotificationService.addSystemNotification(
+				userId as Id<'users'>,
+				'Document Already Processed',
+				'The document was already processed',
+			);
+			return;
+		}
+
 		console.log(`📎 Processing attachment: ${part.filename} (${part.mimeType})`);
+		console.log(`📎 File size: ${part.body?.size || 'unknown'} bytes`);
 
 		// Check file size (limit to 10MB)
 		const maxSize = 10 * 1024 * 1024; // 10MB
@@ -597,6 +619,8 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 			'application/vnd.ms-powerpoint',
 			'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 			'text/plain',
+			'text/csv',
+			'application/csv',
 			'image/jpeg',
 			'image/png',
 			'image/gif',
@@ -606,6 +630,7 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 
 		if (!allowedTypes.includes(part.mimeType)) {
 			console.log(`⚠️ Skipping unsupported file type: ${part.filename} (${part.mimeType})`);
+			console.log(`📋 Supported types: ${allowedTypes.join(', ')}`);
 			return;
 		}
 
@@ -623,8 +648,6 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 		}
 
 		const buffer = Buffer.from(attachmentData, 'base64');
-
-		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 		const uploadUrl = await convexClient.mutation(api.files.generateUploadUrl);
 
@@ -662,10 +685,6 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 				const company = await convexClient.query(api.companies.getCompanyById, {
 					companyId: companyId as Id<'companies'>,
 				});
-
-				if (company) {
-					await NotificationService.addDocumentNotification(userId, part.filename, company.name);
-				}
 			} catch (error) {
 				// Handle error silently
 			}

@@ -182,6 +182,13 @@ export default function CompaniesPage() {
 						<CardDescription className="text-slate-400">
 							Showing {startIndex + 1}-{Math.min(endIndex, filteredCompanies.length)} of{' '}
 							{filteredCompanies.length} companies
+							{companies?.some((c) => c.name === 'Unknown Company') && (
+								<span className="block mt-2 text-orange-300 text-xs">
+									💡 Companies marked as &quot;Generic&quot; were created automatically when the
+									system couldn&apos;t determine the company name from the email. You can rename them
+									later.
+								</span>
+							)}
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -205,11 +212,20 @@ export default function CompaniesPage() {
 									>
 										<CardContent className="p-4">
 											<div className="flex items-start space-x-3">
-												<Building2 className="h-8 w-8 text-[#FFB900] mt-1" />
+												<Building2
+													className={`h-8 w-8 mt-1 ${company.name === 'Unknown Company' ? 'text-orange-400' : 'text-[#FFB900]'}`}
+												/>
 												<div className="flex-1 min-w-0">
-													<h3 className="text-sm font-medium text-slate-100 truncate">
-														{company.name}
-													</h3>
+													<div className="flex items-center gap-2">
+														<h3 className="text-sm font-medium text-slate-100 truncate">
+															{company.name}
+														</h3>
+														{company.name === 'Unknown Company' && (
+															<span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+																Generic
+															</span>
+														)}
+													</div>
 													{company.email && (
 														<div className="flex items-center mt-1">
 															<Mail className="h-3 w-3 text-slate-400 mr-1" />

@@ -140,3 +140,36 @@ export const getDocumentsWithCompany = query({
 		return documentsWithCompany;
 	},
 });
+
+// Check for duplicate filename and content type within the same company for a specific user
+export const checkDuplicateDocument = query({
+	args: {
+		companyId: v.id('companies'),
+		filename: v.string(),
+		contentType: v.string(),
+		userId: v.id('users'),
+	},
+	handler: async (ctx, args) => {
+		const { companyId, filename, contentType, userId } = args;
+
+		const company = await ctx.db.get(companyId);
+		if (!company || company.ownerId !== userId) {
+			return false;
+		}
+
+		// Check if a document with the same filename AND content type already exists for this company (owned by this user)
+		const existingDocument = await ctx.db
+			.query('documents')
+			.withIndex('by_company', (q) => q.eq('companyId', companyId))
+			.filter((q) => q.eq(q.field('originalName'), filename) && q.eq(q.field('contentType'), contentType))
+			.first();
+
+		if (existingDocument) {
+			console.log(
+				`🔍 Duplicate detected: ${filename} (${contentType}) already exists for company ${companyId} (user ${userId})`,
+			);
+		}
+
+		return !!existingDocument;
+	},
+});
