@@ -1,90 +1,91 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 
-// Get company by email
-export const getCompanyByEmail = query({
-	args: { email: v.string() },
+// Get user company by email
+export const getUserCompanyByEmail = query({
+	args: {
+		email: v.string(),
+		userId: v.id('users'),
+	},
 	handler: async (ctx, args) => {
-		const { email } = args;
+		const { email, userId } = args;
 
-		const company = await ctx.db
-			.query('companies')
-			.withIndex('by_email', (q) => q.eq('email', email))
+		const userCompany = await ctx.db
+			.query('user_companies')
+			.withIndex('by_user_email', (q) => q.eq('userId', userId).eq('email', email))
 			.first();
 
-		return company;
+		return userCompany;
 	},
 });
 
-// Get company by ID
-export const getCompanyById = query({
-	args: { companyId: v.id('companies') },
+// Get user company by ID
+export const getUserCompanyById = query({
+	args: { userCompanyId: v.id('user_companies') },
 	handler: async (ctx, args) => {
-		const { companyId } = args;
+		const { userCompanyId } = args;
 
-		const company = await ctx.db.get(companyId);
-		return company;
+		const userCompany = await ctx.db.get(userCompanyId);
+		return userCompany;
 	},
 });
 
-// Create company (simplified version for Gmail webhook)
-export const createCompany = mutation({
+// Create or get user company (for Gmail webhook)
+export const createOrGetUserCompany = mutation({
 	args: {
 		name: v.string(),
 		email: v.string(),
-		ownerId: v.optional(v.id('users')),
+		userId: v.id('users'),
 		metadata: v.optional(v.any()),
 	},
 	handler: async (ctx, args) => {
-		const { name, email, ownerId, metadata } = args;
+		const { name, email, userId, metadata } = args;
 
-		// Check if company already exists
-		const existingCompany = await ctx.db
-			.query('companies')
-			.withIndex('by_email', (q) => q.eq('email', email))
+		// Check if user already has this company
+		const existingUserCompany = await ctx.db
+			.query('user_companies')
+			.withIndex('by_user_email', (q) => q.eq('userId', userId).eq('email', email))
 			.first();
 
-		if (existingCompany) {
-			// Update existing company with new metadata if provided
-			if (metadata) {
-				await ctx.db.patch(existingCompany._id, {
-					updatedAt: Date.now(),
-					lastEmailReceived: Date.now(),
-				});
-			}
-			return existingCompany._id;
+		if (existingUserCompany) {
+			// Update existing user company
+			await ctx.db.patch(existingUserCompany._id, {
+				lastEmailReceived: Date.now(),
+				updatedAt: Date.now(),
+			});
+			return existingUserCompany._id;
 		}
 
-		// Create company with minimal data
-		const companyId = await ctx.db.insert('companies', {
-			name,
+		// Create new user company
+		const userCompanyId = await ctx.db.insert('user_companies', {
+			userId,
 			email,
-			ownerId,
-			phone: '', // Will be updated later
-			location: '', // Will be updated later
-			country: '', // Will be updated later
+			name,
+			phone: '',
+			location: '',
+			country: '',
+			lastEmailReceived: Date.now(),
 			createdAt: Date.now(),
 			updatedAt: Date.now(),
-			lastEmailReceived: Date.now(),
 		});
 
-		return companyId;
+		return userCompanyId;
 	},
 });
 
-// Update company information
-export const updateCompany = mutation({
+// Update user company details
+export const updateUserCompany = mutation({
 	args: {
-		companyId: v.id('companies'),
+		userCompanyId: v.id('user_companies'),
 		name: v.optional(v.string()),
 		phone: v.optional(v.string()),
 		location: v.optional(v.string()),
 		country: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		const { companyId, ...updates } = args;
+		const { userCompanyId, ...updates } = args;
 
-		await ctx.db.patch(companyId, {
+		await ctx.db.patch(userCompanyId, {
 			...updates,
 			updatedAt: Date.now(),
 		});
@@ -99,34 +100,33 @@ export const getAllCompanies = query({
 	handler: async (ctx, args) => {
 		const { userId } = args;
 
-		// Get companies that belong to this user
-		const companies = await ctx.db
-			.query('companies')
-			.filter((q) => q.eq(q.field('ownerId'), userId))
+		const userCompanies = await ctx.db
+			.query('user_companies')
+			.withIndex('by_user', (q) => q.eq('userId', userId))
 			.collect();
 
-		return companies;
+		return userCompanies;
 	},
 });
 
-// Delete company (only if it has no documents)
-export const deleteCompany = mutation({
-	args: { companyId: v.id('companies') },
+// Delete user company (only if it has no documents)
+export const deleteUserCompany = mutation({
+	args: { userCompanyId: v.id('user_companies') },
 	handler: async (ctx, args) => {
-		const { companyId } = args;
+		const { userCompanyId } = args;
 
 		// Check if company has any documents
 		const documents = await ctx.db
 			.query('documents')
-			.withIndex('by_company', (q) => q.eq('companyId', companyId))
+			.withIndex('by_user_company', (q) => q.eq('userCompanyId', userCompanyId))
 			.collect();
 
 		if (documents.length > 0) {
 			throw new Error('Cannot delete company with existing documents');
 		}
 
-		// Delete the company
-		await ctx.db.delete(companyId);
+		// Delete the user company
+		await ctx.db.delete(userCompanyId);
 
 		return { success: true };
 	},

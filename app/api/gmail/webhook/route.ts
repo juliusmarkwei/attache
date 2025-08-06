@@ -363,16 +363,17 @@ async function processEmail(messageId: string, userId?: string) {
 		// Initialize Convex client
 		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-		// Find or create company
-		let company = await convexClient.query(api.companies.getCompanyByEmail, {
+		// Find or create user company
+		let userCompany = await convexClient.query(api.companies.getUserCompanyByEmail, {
 			email: cleanEmail,
+			userId: userId as Id<'users'>,
 		});
 
-		if (!company) {
-			const companyId = await convexClient.mutation(api.companies.createCompany, {
+		if (!userCompany) {
+			const userCompanyId = await convexClient.mutation(api.companies.createOrGetUserCompany, {
 				name: companyName,
 				email: cleanEmail,
-				ownerId: userId as Id<'users'>,
+				userId: userId as Id<'users'>,
 				metadata: {
 					source: 'gmail',
 					firstEmailSubject: subject,
@@ -381,26 +382,30 @@ async function processEmail(messageId: string, userId?: string) {
 					originalEmail: from,
 				},
 			});
-			company = await convexClient.query(api.companies.getCompanyById, {
-				companyId,
+			userCompany = await convexClient.query(api.companies.getUserCompanyById, {
+				userCompanyId,
 			});
 		} else {
-			await convexClient.mutation(api.companies.updateCompany, {
-				companyId: company._id,
+			await convexClient.mutation(api.companies.updateUserCompany, {
+				userCompanyId: userCompany._id,
+			});
+			// Get updated user company
+			userCompany = await convexClient.query(api.companies.getUserCompanyById, {
+				userCompanyId: userCompany._id,
 			});
 		}
 
-		if (!company) {
+		if (!userCompany) {
 			return;
 		}
 
 		// Process attachments (email has attachments, so we know this will work)
-		await processAttachments(message, company._id, cleanEmail, userId);
+		await processAttachments(message, userCompany._id, cleanEmail, userId);
 
 		// Only send notification for emails with attachments
 		if (userId) {
 			try {
-				await NotificationService.addEmailNotification(userId, subject, company.name);
+				await NotificationService.addEmailNotification(userId, subject, userCompany.name);
 			} catch (error) {
 				// Handle error silently
 			}
@@ -410,14 +415,14 @@ async function processEmail(messageId: string, userId?: string) {
 		if (userId) {
 			try {
 				const notificationTitle =
-					company.name === 'Unknown Company'
+					userCompany.name === 'Unknown Company'
 						? 'Email Processed (Unknown Company)'
 						: 'Email Processed Successfully';
 
 				const notificationMessage =
-					company.name === 'Unknown Company'
+					userCompany.name === 'Unknown Company'
 						? `Email "${subject}" was processed and documents were added to Unknown Company. You may want to rename this company later.`
-						: `Email "${subject}" was processed and documents were added to ${company.name}.`;
+						: `Email "${subject}" was processed and documents were added to ${userCompany.name}.`;
 
 				await NotificationService.addSystemNotification(userId, notificationTitle, notificationMessage);
 			} catch (error) {
@@ -541,7 +546,7 @@ function extractCompanyFromSubject(subject: string): string | null {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function processAttachments(message: any, companyId: string, uploadedBy: string, userId?: string) {
+async function processAttachments(message: any, userCompanyId: string, uploadedBy: string, userId?: string) {
 	try {
 		const parts = message.payload?.parts || [];
 		let attachmentCount = 0;
@@ -550,7 +555,7 @@ async function processAttachments(message: any, companyId: string, uploadedBy: s
 
 		for (const part of parts) {
 			if (part.filename && part.body?.attachmentId) {
-				await processAttachment(part, companyId, uploadedBy, message.id, userId);
+				await processAttachment(part, userCompanyId, uploadedBy, message.id, userId);
 				attachmentCount++;
 			}
 
@@ -558,7 +563,7 @@ async function processAttachments(message: any, companyId: string, uploadedBy: s
 			if (part.parts) {
 				for (const subPart of part.parts) {
 					if (subPart.filename && subPart.body?.attachmentId) {
-						await processAttachment(subPart, companyId, uploadedBy, message.id, userId);
+						await processAttachment(subPart, userCompanyId, uploadedBy, message.id, userId);
 						attachmentCount++;
 					}
 				}
@@ -572,7 +577,14 @@ async function processAttachments(message: any, companyId: string, uploadedBy: s
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function processAttachment(part: any, companyId: string, uploadedBy: string, messageId: string, userId?: string) {
+async function processAttachment(
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	part: any,
+	userCompanyId: string,
+	uploadedBy: string,
+	messageId: string,
+	userId?: string,
+) {
 	// Create unique identifier for this attachment
 	const attachmentId = `${messageId}_${part.body.attachmentId}`;
 
@@ -582,10 +594,10 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 	}
 
 	try {
-		// Check for duplicate filename and content type within the same company for this user
+		// Check for duplicate filename and content type within the same user company for this user
 		const convexClient = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 		const isDuplicate = await convexClient.query(api.documents.checkDuplicateDocument, {
-			companyId: companyId as Id<'companies'>,
+			userCompanyId: userCompanyId as Id<'user_companies'>,
 			filename: part.filename,
 			contentType: part.mimeType || 'application/octet-stream',
 			userId: userId as Id<'users'>,
@@ -647,8 +659,8 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 
 		const { storageId } = await uploadResponse.json();
 
-		await convexClient.mutation(api.documents.addDocumentToCompany, {
-			companyId: companyId as Id<'companies'>,
+		await convexClient.mutation(api.documents.addDocumentToUserCompany, {
+			userCompanyId: userCompanyId as Id<'user_companies'>,
 			filename: part.filename,
 			originalName: part.filename,
 			contentType: part.mimeType || 'application/octet-stream',
@@ -661,16 +673,6 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 				processedAt: new Date().toISOString(),
 			},
 		});
-
-		if (userId) {
-			try {
-				const company = await convexClient.query(api.companies.getCompanyById, {
-					companyId: companyId as Id<'companies'>,
-				});
-			} catch (error) {
-				// Handle error silently
-			}
-		}
 
 		// Mark this attachment as processed
 		processedAttachments.add(attachmentId);

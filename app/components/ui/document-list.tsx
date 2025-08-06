@@ -1,7 +1,10 @@
 'use client';
 
-import { Download, Eye, FileSpreadsheet, FileText, FileType, Image, Trash2 } from 'lucide-react';
+import { formatFileSize } from '@/utils/formatters';
+import { Download, Eye, FileText, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { Id } from '../../../convex/_generated/dataModel';
+import { GetFileIcon } from '../dashboard/GetFileIcon';
 import { Button } from './button';
 import EnhancedDocumentViewer from './enhanced-document-viewer';
 
@@ -13,7 +16,7 @@ interface Document {
 	size: number;
 	storageId: string;
 	uploadedAt: number;
-	companyId: string;
+	userCompanyId: Id<'user_companies'>;
 }
 
 interface Company {
@@ -31,24 +34,6 @@ interface DocumentListProps {
 	deletingDocumentId?: string | null;
 }
 
-function formatFileSize(bytes: number): string {
-	if (bytes === 0) return '0 Bytes';
-	const k = 1024;
-	const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-	const i = Math.floor(Math.log(bytes) / Math.log(k));
-	return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function getFileIcon(contentType: string) {
-	if (contentType.includes('pdf')) return <FileText className="h-6 w-6 text-blue-400" />;
-	if (contentType.includes('image')) return <Image className="h-6 w-6 text-green-400" />;
-	if (contentType.includes('spreadsheet') || contentType.includes('excel'))
-		return <FileSpreadsheet className="h-6 w-6 text-green-500" />;
-	if (contentType.includes('word') || contentType.includes('document') || contentType.includes('text'))
-		return <FileText className="h-6 w-6 text-blue-500" />;
-	return <FileType className="h-6 w-6 text-slate-400" />;
-}
-
 export default function DocumentList({
 	documents,
 	companies,
@@ -59,7 +44,6 @@ export default function DocumentList({
 	deletingDocumentId = null,
 }: DocumentListProps) {
 	const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-	const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 	const [deletingDocument, setDeletingDocument] = useState<string | null>(null);
 
 	const handleDownload = async (doc: Document) => {
@@ -117,14 +101,14 @@ export default function DocumentList({
 		<>
 			<div className={`space-y-4 ${className}`}>
 				{documents.map((doc) => {
-					const company = companies?.find((c) => c._id === doc.companyId);
+					const company = companies?.find((c) => c._id === doc.userCompanyId);
 					return (
 						<div
 							key={doc._id}
 							className="flex items-center justify-between p-4 bg-slate-700/50 rounded-lg border border-slate-600 hover:bg-slate-700/70 transition-colors"
 						>
 							<div className="flex items-center space-x-4">
-								<div>{getFileIcon(doc.contentType)}</div>
+								<div>{GetFileIcon(doc.contentType)}</div>
 								<div className="flex-1 min-w-0">
 									<h3 className="text-sm font-medium text-slate-100 truncate">{doc.originalName}</h3>
 									<div className="flex items-center space-x-4 mt-1 text-xs text-slate-400">
@@ -148,7 +132,6 @@ export default function DocumentList({
 									size="sm"
 									onClick={() => {
 										setSelectedDocument(doc);
-										setSelectedCompany(company || null);
 									}}
 									className="border-slate-600 text-slate-200 hover:bg-transparent hover:text-slate-200 hover:cursor-pointer"
 									title="View document"
@@ -191,7 +174,6 @@ export default function DocumentList({
 				isOpen={!!selectedDocument}
 				onClose={() => {
 					setSelectedDocument(null);
-					setSelectedCompany(null);
 				}}
 				document={selectedDocument}
 				storageId={selectedDocument?.storageId || ''}

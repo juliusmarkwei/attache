@@ -72,7 +72,7 @@ export default function DocumentsPage() {
 				doc.originalName.toLowerCase().includes(searchTerm.toLowerCase()) ||
 				doc.filename.toLowerCase().includes(searchTerm.toLowerCase());
 
-			const matchesCompany = selectedCompany === 'all' || doc.companyId === selectedCompany;
+			const matchesCompany = selectedCompany === 'all' || doc.userCompanyId === selectedCompany;
 
 			let matchesDate = true;
 			if (dateFilter !== 'all') {

@@ -1,5 +1,7 @@
-import { Download, Eye, FileSpreadsheet, FileText, FileType, Image, X } from 'lucide-react';
+import { formatFileSize } from '@/utils/formatters';
+import { Download, Eye, X } from 'lucide-react';
 import { useState } from 'react';
+import { GetFileIcon } from '../dashboard/GetFileIcon';
 import { Button } from './button';
 
 interface DocumentViewerProps {
@@ -23,24 +25,6 @@ interface DocumentViewerProps {
 export default function DocumentViewer({ document, company, onClose }: DocumentViewerProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-
-	const formatFileSize = (bytes: number): string => {
-		if (bytes === 0) return '0 Bytes';
-		const k = 1024;
-		const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-		const i = Math.floor(Math.log(bytes) / Math.log(k));
-		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-	};
-
-	const getFileIcon = (contentType: string) => {
-		if (contentType.includes('pdf')) return <FileText className="h-8 w-8 text-blue-400" />;
-		if (contentType.includes('image')) return <Image className="h-8 w-8 text-green-400" />;
-		if (contentType.includes('spreadsheet') || contentType.includes('excel'))
-			return <FileSpreadsheet className="h-8 w-8 text-green-500" />;
-		if (contentType.includes('word') || contentType.includes('document') || contentType.includes('text'))
-			return <FileText className="h-8 w-8 text-blue-500" />;
-		return <FileType className="h-8 w-8 text-slate-400" />;
-	};
 
 	const handleDownload = async () => {
 		try {
@@ -82,7 +66,7 @@ export default function DocumentViewer({ document, company, onClose }: DocumentV
 				{/* Header */}
 				<div className="flex items-center justify-between p-4 border-b border-slate-700">
 					<div className="flex items-center space-x-3">
-						<div>{getFileIcon(document.contentType)}</div>
+						<div>{GetFileIcon(document.contentType)}</div>
 						<div>
 							<h2 className="text-lg font-semibold text-white">{document.originalName}</h2>
 							<div className="flex items-center space-x-4 text-sm text-slate-400">
@@ -163,7 +147,7 @@ export default function DocumentViewer({ document, company, onClose }: DocumentV
 							) : (
 								<div className="h-full flex items-center justify-center bg-slate-900">
 									<div className="text-center text-slate-400">
-										<div className="text-4xl mb-4">{getFileIcon(document.contentType)}</div>
+										<div className="text-4xl mb-4">{GetFileIcon(document.contentType)}</div>
 										<p className="text-lg mb-2">Preview not available</p>
 										<p className="text-sm mb-4">
 											This file type cannot be previewed in the browser

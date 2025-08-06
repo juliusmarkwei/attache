@@ -1,8 +1,9 @@
 'use client';
 
+import { GetFileIcon } from '@/components/dashboard/GetFileIcon';
 import { formatStorageSize } from '@/utils/format-storage-size';
 import { useQuery } from 'convex/react';
-import { Building2, Calendar, Download, FileSpreadsheet, FileText, FileType, Image, Mail, X } from 'lucide-react';
+import { Building2, Calendar, Download, FileText, Mail, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api } from '../../../convex/_generated/api';
@@ -16,17 +17,6 @@ import { useAuth } from '../../hooks/useAuth';
 export default function Dashboard() {
 	const { user, handleLogout } = useAuth();
 	const router = useRouter();
-
-	// Helper function to get file icon based on content type
-	const getFileIcon = (contentType: string) => {
-		if (contentType.includes('pdf')) return <FileText className="h-5 w-5 text-blue-400" />;
-		if (contentType.includes('image')) return <Image className="h-5 w-5 text-green-400" />;
-		if (contentType.includes('spreadsheet') || contentType.includes('excel'))
-			return <FileSpreadsheet className="h-5 w-5 text-green-500" />;
-		if (contentType.includes('word') || contentType.includes('document') || contentType.includes('text'))
-			return <FileText className="h-5 w-5 text-blue-500" />;
-		return <FileType className="h-5 w-5 text-slate-400" />;
-	};
 
 	const companies = useQuery(api.companies.getAllCompanies, user?.id ? { userId: user.id as Id<'users'> } : 'skip');
 	const documents = useQuery(api.documents.getAllDocuments, user?.id ? { userId: user.id as Id<'users'> } : 'skip');
@@ -160,7 +150,7 @@ export default function Dashboard() {
 
 		// Calculate document count for each company
 		const companiesWithCounts = companies.map((company) => {
-			const documentCount = documents.filter((doc) => doc.companyId === company._id).length;
+			const documentCount = documents.filter((doc) => doc.userCompanyId === company._id).length;
 			return {
 				name: company.name,
 				documents: documentCount,
@@ -366,12 +356,12 @@ export default function Dashboard() {
 										key={document._id}
 										className="flex items-center space-x-4 p-3 bg-slate-700/30 rounded-lg hover:bg-slate-700/50 transition-colors"
 									>
-										{getFileIcon(document.contentType)}
+										{GetFileIcon(document.contentType)}
 										<div className="flex-1">
 											<p className="text-sm font-medium text-white">{document.originalName}</p>
 											<p className="text-xs text-slate-400">
 												Uploaded to{' '}
-												{companies?.find((c) => c._id === document.companyId)?.name ||
+												{companies?.find((c) => c._id === document.userCompanyId)?.name ||
 													'Unknown Company'}
 											</p>
 										</div>

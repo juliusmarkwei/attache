@@ -20,8 +20,8 @@ export default function DocumentList({ companyId }: DocumentListProps) {
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [documentToDelete, setDocumentToDelete] = useState<{ id: string; name: string } | null>(null);
 	const documents = useQuery(
-		companyId ? api.documents.getDocumentsByCompany : api.documents.getAllDocuments,
-		companyId ? { companyId: companyId as Id<'companies'> } : { userId: user?.id as Id<'users'> },
+		companyId ? api.documents.getDocumentsByUserCompany : api.documents.getAllDocuments,
+		companyId ? { userCompanyId: companyId as Id<'user_companies'> } : { userId: user?.id as Id<'users'> },
 	);
 
 	if (!documents) {

@@ -1,7 +1,7 @@
 'use client';
 
-import { useQuery } from 'convex/react';
-import { Building2, ChevronLeft, ChevronRight, Mail, MapPin, Phone, Search } from 'lucide-react';
+import { useMutation, useQuery } from 'convex/react';
+import { Building2, ChevronLeft, ChevronRight, Edit, Mail, MapPin, Phone, Save, Search, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '../../../../convex/_generated/api';
@@ -21,8 +21,11 @@ export default function CompaniesPage() {
 		api.gmail.getGmailIntegration,
 		user?.id ? { userId: user.id as Id<'users'> } : 'skip',
 	);
+	const updateUserCompanyDetailsMutation = useMutation(api.companies.updateUserCompany);
 	const [searchTerm, setSearchTerm] = useState('');
 	const [currentPage, setCurrentPage] = useState(1);
+	const [editingCompany, setEditingCompany] = useState<string | null>(null);
+	const [editingName, setEditingName] = useState('');
 	const itemsPerPage = 12;
 
 	const filteredCompanies =
@@ -37,6 +40,29 @@ export default function CompaniesPage() {
 	const startIndex = (currentPage - 1) * itemsPerPage;
 	const endIndex = startIndex + itemsPerPage;
 	const paginatedCompanies = filteredCompanies.slice(startIndex, endIndex);
+
+	const handleEditName = (companyId: string, currentName: string) => {
+		setEditingCompany(companyId);
+		setEditingName(currentName);
+	};
+
+	const handleSaveName = async (companyId: string) => {
+		try {
+			await updateUserCompanyDetailsMutation({
+				userCompanyId: companyId as Id<'user_companies'>,
+				name: editingName,
+			});
+			setEditingCompany(null);
+			setEditingName('');
+		} catch (error) {
+			console.error('Failed to update company name:', error);
+		}
+	};
+
+	const handleCancelEdit = () => {
+		setEditingCompany(null);
+		setEditingName('');
+	};
 
 	if (!companies) {
 		return (
@@ -207,7 +233,7 @@ export default function CompaniesPage() {
 								{paginatedCompanies.map((company) => (
 									<Card
 										key={company._id}
-										className="bg-slate-700/50 border-slate-600 hover:bg-slate-700/70 transition-colors cursor-pointer"
+										className="bg-slate-700/50 border-slate-600 hover:bg-slate-700/70 transition-colors cursor-pointer group"
 										onClick={() => router.push(`/dashboard/companies/${company._id}`)}
 									>
 										<CardContent className="p-4">
@@ -217,9 +243,55 @@ export default function CompaniesPage() {
 												/>
 												<div className="flex-1 min-w-0">
 													<div className="flex items-center gap-2">
-														<h3 className="text-sm font-medium text-slate-100 truncate">
-															{company.name}
-														</h3>
+														{editingCompany === company._id ? (
+															<div className="flex items-center gap-2 flex-1">
+																<Input
+																	value={editingName}
+																	onChange={(e) => setEditingName(e.target.value)}
+																	className="text-sm bg-slate-600 border-slate-500 text-white h-6 px-2"
+																	onKeyDown={(e) => {
+																		if (e.key === 'Enter') {
+																			handleSaveName(company._id);
+																		} else if (e.key === 'Escape') {
+																			handleCancelEdit();
+																		}
+																	}}
+																	autoFocus
+																/>
+																<Button
+																	size="sm"
+																	onClick={() => handleSaveName(company._id)}
+																	className="h-6 px-2 bg-green-600 hover:bg-green-700"
+																>
+																	<Save className="h-3 w-3" />
+																</Button>
+																<Button
+																	size="sm"
+																	variant="ghost"
+																	onClick={handleCancelEdit}
+																	className="h-6 px-2 text-slate-400 hover:text-slate-300"
+																>
+																	<X className="h-3 w-3" />
+																</Button>
+															</div>
+														) : (
+															<>
+																<h3 className="text-sm font-medium text-slate-100 truncate flex-1">
+																	{company.name}
+																</h3>
+																<Button
+																	size="sm"
+																	variant="ghost"
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		handleEditName(company._id, company.name);
+																	}}
+																	className="h-6 px-1 text-slate-400 hover:text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity"
+																>
+																	<Edit className="h-3 w-3" />
+																</Button>
+															</>
+														)}
 														{company.name === 'Unknown Company' && (
 															<span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
 																Generic

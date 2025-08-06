@@ -1,9 +1,11 @@
 'use client';
 
+import { formatFileSize } from '@/utils/formatters';
 import { useQuery } from 'convex/react';
-import { Download, FileSpreadsheet, FileText, FileType, Image, X } from 'lucide-react';
+import { Download, X } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../../../convex/_generated/api';
+import { GetFileIcon } from '../dashboard/GetFileIcon';
 import { Button } from './button';
 
 interface Document {
@@ -27,26 +29,6 @@ export default function EnhancedDocumentViewer({ isOpen, onClose, document, stor
 
 	// Get file URL from Convex
 	const fileUrl = useQuery(api.files.getFileUrl, storageId ? { storageId } : 'skip');
-
-	// Get file icon based on content type
-	const getFileIcon = (contentType: string) => {
-		if (contentType.includes('pdf')) return <FileText className="h-8 w-8 text-blue-400" />;
-		if (contentType.includes('image')) return <Image className="h-8 w-8 text-green-400" />;
-		if (contentType.includes('spreadsheet') || contentType.includes('excel'))
-			return <FileSpreadsheet className="h-8 w-8 text-green-500" />;
-		if (contentType.includes('word') || contentType.includes('document') || contentType.includes('text'))
-			return <FileText className="h-8 w-8 text-blue-500" />;
-		return <FileType className="h-8 w-8 text-slate-400" />;
-	};
-
-	// Format file size
-	const formatFileSize = (bytes: number) => {
-		if (bytes === 0) return '0 Bytes';
-		const k = 1024;
-		const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-		const i = Math.floor(Math.log(bytes) / Math.log(k));
-		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-	};
 
 	// Check for loading state
 	const isLoading = fileUrl === undefined;
@@ -101,7 +83,7 @@ export default function EnhancedDocumentViewer({ isOpen, onClose, document, stor
 		// For other file types, show a preview with download option
 		return (
 			<div className="flex flex-col items-center justify-center h-full text-center p-8">
-				{getFileIcon(contentType)}
+				{GetFileIcon(contentType)}
 				<h3 className="text-lg font-medium text-white mt-4 mb-2">{document?.originalName}</h3>
 				<p className="text-slate-400 mb-4">This file type cannot be previewed directly.</p>
 				<Button onClick={handleDownload} className="bg-[#FFB900] text-slate-900 hover:bg-[#FFB900]/90">
@@ -124,7 +106,7 @@ export default function EnhancedDocumentViewer({ isOpen, onClose, document, stor
 				{/* Header */}
 				<div className="flex items-center justify-between p-6 border-b border-slate-700">
 					<div className="flex items-center space-x-3">
-						{getFileIcon(document?.contentType || '')}
+						{GetFileIcon(document?.contentType || '')}
 						<div>
 							<h2 className="text-lg font-semibold text-white">{document?.originalName}</h2>
 							<div className="flex items-center space-x-4 text-sm text-slate-400">

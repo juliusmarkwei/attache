@@ -1,10 +1,9 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
 
-// Add document to company
-export const addDocumentToCompany = mutation({
+export const addDocumentToUserCompany = mutation({
 	args: {
-		companyId: v.id('companies'),
+		userCompanyId: v.id('user_companies'),
 		filename: v.string(),
 		originalName: v.string(),
 		contentType: v.string(),
@@ -14,22 +13,21 @@ export const addDocumentToCompany = mutation({
 		metadata: v.optional(v.any()),
 	},
 	handler: async (ctx, args) => {
-		const { companyId, filename, originalName, contentType, size, storageId, uploadedBy, metadata } = args;
+		const { userCompanyId, filename, originalName, contentType, size, storageId, uploadedBy, metadata } = args;
 
-		// Check if document with same storageId already exists for this company
 		const existingDocument = await ctx.db
 			.query('documents')
-			.withIndex('by_company', (q) => q.eq('companyId', companyId))
+			.withIndex('by_user_company', (q) => q.eq('userCompanyId', userCompanyId))
 			.filter((q) => q.eq(q.field('storageId'), storageId))
 			.first();
 
 		if (existingDocument) {
-			console.log(`🔄 Document with storageId ${storageId} already exists for company ${companyId}`);
+			console.log(`🔄 Document with storageId ${storageId} already exists for user company ${userCompanyId}`);
 			return existingDocument._id;
 		}
 
 		const documentId = await ctx.db.insert('documents', {
-			companyId,
+			userCompanyId,
 			filename,
 			originalName,
 			contentType,
@@ -44,15 +42,15 @@ export const addDocumentToCompany = mutation({
 	},
 });
 
-// Get documents for a company
-export const getDocumentsByCompany = query({
-	args: { companyId: v.id('companies') },
+// Get documents for a user company
+export const getDocumentsByUserCompany = query({
+	args: { userCompanyId: v.id('user_companies') },
 	handler: async (ctx, args) => {
-		const { companyId } = args;
+		const { userCompanyId } = args;
 
 		const documents = await ctx.db
 			.query('documents')
-			.withIndex('by_company', (q) => q.eq('companyId', companyId))
+			.withIndex('by_user_company', (q) => q.eq('userCompanyId', userCompanyId))
 			.order('desc')
 			.collect();
 
@@ -77,19 +75,17 @@ export const getAllDocuments = query({
 	handler: async (ctx, args) => {
 		const { userId } = args;
 
-		// First get all companies owned by this user
+		// Get all user companies for this user
 		const userCompanies = await ctx.db
-			.query('companies')
-			.filter((q) => q.eq(q.field('ownerId'), userId))
+			.query('user_companies')
+			.withIndex('by_user', (q) => q.eq('userId', userId))
 			.collect();
 
-		const companyIds = userCompanies.map((company) => company._id);
+		const userCompanyIds = userCompanies.map((company) => company._id);
 
-		// Then get all documents and filter by company IDs
 		const allDocuments = await ctx.db.query('documents').order('desc').collect();
 
-		// Filter documents to only include those from user's companies
-		const documents = allDocuments.filter((doc) => companyIds.includes(doc.companyId));
+		const documents = allDocuments.filter((doc) => doc.userCompanyId && userCompanyIds.includes(doc.userCompanyId));
 
 		return documents;
 	},
@@ -112,27 +108,21 @@ export const getDocumentsWithCompany = query({
 	handler: async (ctx, args) => {
 		const { userId } = args;
 
-		// First get all companies owned by this user
 		const userCompanies = await ctx.db
-			.query('companies')
-			.filter((q) => q.eq(q.field('ownerId'), userId))
+			.query('user_companies')
+			.withIndex('by_user', (q) => q.eq('userId', userId))
 			.collect();
 
-		const companyIds = userCompanies.map((company) => company._id);
-
-		// Then get all documents and filter by company IDs
+		const userCompanyIds = userCompanies.map((company) => company._id);
 		const allDocuments = await ctx.db.query('documents').order('desc').collect();
+		const documents = allDocuments.filter((doc) => doc.userCompanyId && userCompanyIds.includes(doc.userCompanyId));
 
-		// Filter documents to only include those from user's companies
-		const documents = allDocuments.filter((doc) => companyIds.includes(doc.companyId));
-
-		// Get company information for each document
 		const documentsWithCompany = await Promise.all(
 			documents.map(async (doc) => {
-				const company = await ctx.db.get(doc.companyId);
+				const userCompany = doc.userCompanyId ? await ctx.db.get(doc.userCompanyId) : null;
 				return {
 					...doc,
-					company,
+					company: userCompany,
 				};
 			}),
 		);
@@ -141,32 +131,31 @@ export const getDocumentsWithCompany = query({
 	},
 });
 
-// Check for duplicate filename and content type within the same company for a specific user
+// Check for duplicate filename and content type within the same user company
 export const checkDuplicateDocument = query({
 	args: {
-		companyId: v.id('companies'),
+		userCompanyId: v.id('user_companies'),
 		filename: v.string(),
 		contentType: v.string(),
 		userId: v.id('users'),
 	},
 	handler: async (ctx, args) => {
-		const { companyId, filename, contentType, userId } = args;
+		const { userCompanyId, filename, contentType, userId } = args;
 
-		const company = await ctx.db.get(companyId);
-		if (!company || company.ownerId !== userId) {
+		const userCompany = await ctx.db.get(userCompanyId);
+		if (!userCompany || userCompany.userId !== userId) {
 			return false;
 		}
 
-		// Check if a document with the same filename AND content type already exists for this company (owned by this user)
 		const existingDocument = await ctx.db
 			.query('documents')
-			.withIndex('by_company', (q) => q.eq('companyId', companyId))
+			.withIndex('by_user_company', (q) => q.eq('userCompanyId', userCompanyId))
 			.filter((q) => q.eq(q.field('originalName'), filename) && q.eq(q.field('contentType'), contentType))
 			.first();
 
 		if (existingDocument) {
 			console.log(
-				`🔍 Duplicate detected: ${filename} (${contentType}) already exists for company ${companyId} (user ${userId})`,
+				`🔍 Duplicate detected: ${filename} (${contentType}) already exists for user company ${userCompanyId} (user ${userId})`,
 			);
 		}
 

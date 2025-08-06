@@ -21,14 +21,16 @@ export default function CompanyDetails() {
 	const router = useRouter();
 	const { user, loading, authChecked, handleLogout } = useAuth();
 
-	const company = useQuery(api.companies.getCompanyById, { companyId: id as Id<'companies'> });
-	const documents = useQuery(api.documents.getDocumentsByCompany, { companyId: id as Id<'companies'> });
+	const company = useQuery(api.companies.getUserCompanyById, {
+		userCompanyId: id as Id<'user_companies'>,
+	});
+	const documents = useQuery(api.documents.getDocumentsByUserCompany, { userCompanyId: id as Id<'user_companies'> });
 	const gmailIntegration = useQuery(
 		api.gmail.getGmailIntegration,
 		user?.id ? { userId: user.id as Id<'users'> } : 'skip',
 	);
-	const updateCompanyMutation = useMutation(api.companies.updateCompany);
-	const deleteCompanyMutation = useMutation(api.companies.deleteCompany);
+	const updateUserCompanyMutation = useMutation(api.companies.updateUserCompany);
+	const deleteCompanyMutation = useMutation(api.companies.deleteUserCompany);
 
 	const [isEditing, setIsEditing] = useState(false);
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -75,17 +77,17 @@ export default function CompanyDetails() {
 
 	const handleSave = async () => {
 		try {
-			await updateCompanyMutation({
-				companyId: company._id,
+			await updateUserCompanyMutation({
+				userCompanyId: company._id,
 				phone: formData.phone,
 				location: formData.location,
 				country: formData.country,
 			});
 
 			setIsEditing(false);
-			toast.success('Company updated successfully');
+			toast.success('Company details updated successfully');
 		} catch (error) {
-			toast.error('Failed to update company');
+			toast.error('Failed to update company details');
 		}
 	};
 
@@ -104,7 +106,7 @@ export default function CompanyDetails() {
 	const handleDeleteConfirm = async () => {
 		setIsDeleting(true);
 		try {
-			await deleteCompanyMutation({ companyId: company._id });
+			await deleteCompanyMutation({ userCompanyId: company._id });
 			toast.success('Company deleted successfully');
 			router.push('/dashboard/companies');
 		} catch (error) {

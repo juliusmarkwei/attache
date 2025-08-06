@@ -1,3 +1,5 @@
+import { Id } from '../../convex/_generated/dataModel';
+
 // Auth types
 export type AuthStep = 'register' | 'login' | 'otp';
 
@@ -27,7 +29,7 @@ export interface User {
 
 // Company types
 export interface Company {
-	id: string;
+	_id: string;
 	name: string;
 	email?: string;
 	phone?: string;
@@ -35,14 +37,14 @@ export interface Company {
 	country?: string;
 	createdAt?: number;
 	updatedAt?: number;
-	ownerId?: string;
+	userId?: string;
 	lastEmailReceived?: number;
 }
 
 // Document types
 export interface Document {
 	_id: string;
-	companyId: string;
+	userCompanyId: Id<'user_companies'>;
 	filename: string;
 	originalName: string;
 	contentType: string;

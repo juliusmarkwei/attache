@@ -11,22 +11,25 @@ export default defineSchema({
 		updatedAt: v.number(),
 	}).index('by_email', ['email']),
 
-	companies: defineTable({
+	user_companies: defineTable({
+		userId: v.id('users'),
+		email: v.string(),
 		name: v.string(),
-		email: v.optional(v.string()),
 		phone: v.optional(v.string()),
 		location: v.optional(v.string()),
 		country: v.optional(v.string()),
+		lastEmailReceived: v.optional(v.number()),
 		createdAt: v.number(),
 		updatedAt: v.number(),
-		ownerId: v.optional(v.id('users')),
-		lastEmailReceived: v.optional(v.number()),
 	})
+		.index('by_user', ['userId'])
 		.index('by_email', ['email'])
-		.index('by_name', ['name']),
+		.index('by_user_email', ['userId', 'email'])
+		.index('by_name', ['name'])
+		.index('by_user_name', ['userId', 'name']),
 
 	documents: defineTable({
-		companyId: v.id('companies'),
+		userCompanyId: v.id('user_companies'),
 		filename: v.string(),
 		originalName: v.string(),
 		contentType: v.string(),
@@ -36,7 +39,7 @@ export default defineSchema({
 		uploadedBy: v.optional(v.string()),
 		metadata: v.optional(v.any()),
 	})
-		.index('by_company', ['companyId'])
+		.index('by_user_company', ['userCompanyId'])
 		.index('by_uploaded_at', ['uploadedAt']),
 
 	notifications: defineTable({
