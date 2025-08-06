@@ -44,3 +44,46 @@
 .toaster [data-sonner-toast] [data-title] {
 	color: #1a1a1a !important;
 }
+
+/* Recharts custom styling to remove white shadows */
+.recharts-bar-rectangle {
+	filter: none !important;
+	box-shadow: none !important;
+	-webkit-filter: none !important;
+	-webkit-box-shadow: none !important;
+}
+
+.recharts-bar-rectangle:hover {
+	filter: none !important;
+	box-shadow: none !important;
+	-webkit-filter: none !important;
+	-webkit-box-shadow: none !important;
+	opacity: 0.8 !important;
+}
+
+.recharts-tooltip-wrapper {
+	filter: none !important;
+	box-shadow: none !important;
+	-webkit-filter: none !important;
+	-webkit-box-shadow: none !important;
+}
+
+/* Target all SVG elements in Recharts */
+.recharts-wrapper svg {
+	filter: none !important;
+	-webkit-filter: none !important;
+}
+
+.recharts-wrapper svg * {
+	filter: none !important;
+	-webkit-filter: none !important;
+}
+
+/* Remove any default hover effects */
+.recharts-bar-rectangle:focus,
+.recharts-bar-rectangle:active {
+	filter: none !important;
+	-webkit-filter: none !important;
+	box-shadow: none !important;
+	-webkit-box-shadow: none !important;
+}

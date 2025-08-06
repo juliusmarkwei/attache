@@ -299,7 +299,6 @@ export const getCurrentUser = query({
 			return null;
 		}
 		const user = await ctx.db.get(session.userId);
-		console.log('getCurrentUser: Retrieved user from database:', user);
 		return user;
 	},
 });

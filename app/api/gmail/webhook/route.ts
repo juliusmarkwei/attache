@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { api } from '../../../../convex/_generated/api';
 import { Id } from '../../../../convex/_generated/dataModel';
 import { NotificationService } from '../../../services/notificationService';
+import { allowedTypes } from '../../../utils/allowed-file-types';
 
 const gmail = google.gmail('v1');
 
@@ -608,25 +609,6 @@ async function processAttachment(part: any, companyId: string, uploadedBy: strin
 			console.log(`⚠️ Skipping large file: ${part.filename} (${part.body.size} bytes)`);
 			return;
 		}
-
-		// Check file type (only allow common document types)
-		const allowedTypes = [
-			'application/pdf',
-			'application/msword',
-			'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-			'application/vnd.ms-excel',
-			'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-			'application/vnd.ms-powerpoint',
-			'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-			'text/plain',
-			'text/csv',
-			'application/csv',
-			'image/jpeg',
-			'image/png',
-			'image/gif',
-			'image/bmp',
-			'image/tiff',
-		];
 
 		if (!allowedTypes.includes(part.mimeType)) {
 			console.log(`⚠️ Skipping unsupported file type: ${part.filename} (${part.mimeType})`);

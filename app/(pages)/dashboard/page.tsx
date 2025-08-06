@@ -1,5 +1,6 @@
 'use client';
 
+import { formatStorageSize } from '@/utils/format-storage-size';
 import { useQuery } from 'convex/react';
 import { Building2, Calendar, Download, FileSpreadsheet, FileText, FileType, Image, Mail, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -7,50 +8,10 @@ import { useEffect, useState } from 'react';
 import { api } from '../../../convex/_generated/api';
 import { Id } from '../../../convex/_generated/dataModel';
 import DashboardLayout from '../../components/dashboard/DashboardLayout';
+import DocumentActivityChart from '../../components/dashboard/DocumentActivityChart';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { useAuth } from '../../hooks/useAuth';
-
-// Simple chart component for statistics
-function SimpleChart({ data, title, color }: { data: number[]; title: string; color: string }) {
-	const getDateLabels = () => {
-		const labels = [];
-		for (let i = 6; i >= 0; i--) {
-			const date = new Date();
-			date.setDate(date.getDate() - i);
-			labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-		}
-		return labels;
-	};
-
-	const dateLabels = getDateLabels();
-
-	return (
-		<div className="space-y-2">
-			<p className="text-xs text-slate-400">{title}</p>
-			<div className="flex items-end space-x-1 h-16">
-				{data.map((value, index) => (
-					<div
-						key={index}
-						className="flex-1 bg-slate-600 rounded-t"
-						style={{
-							height: `${(value / Math.max(...data)) * 100}%`,
-							backgroundColor: color,
-						}}
-					/>
-				))}
-			</div>
-			{/* Date labels */}
-			<div className="flex justify-between text-xs text-slate-400">
-				{dateLabels.map((label, index) => (
-					<span key={index} className="flex-1 text-center">
-						{label}
-					</span>
-				))}
-			</div>
-		</div>
-	);
-}
 
 export default function Dashboard() {
 	const { user, handleLogout } = useAuth();
@@ -334,9 +295,7 @@ export default function Dashboard() {
 							<Download className="h-4 w-4 text-[#FFB900]" />
 						</CardHeader>
 						<CardContent>
-							<div className="text-2xl font-bold text-white">
-								{(totalSize / (1024 * 1024)).toFixed(1)} MB
-							</div>
+							<div className="text-2xl font-bold text-white">{formatStorageSize(totalSize)}</div>
 							<p className="text-xs text-slate-400 mt-1">Total storage used</p>
 						</CardContent>
 					</Card>
@@ -363,7 +322,7 @@ export default function Dashboard() {
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<SimpleChart data={generateChartData()} title="Documents uploaded" color="#FFB900" />
+							<DocumentActivityChart data={generateChartData()} />
 						</CardContent>
 					</Card>
 
@@ -420,9 +379,7 @@ export default function Dashboard() {
 											<p className="text-xs text-slate-400">
 												{new Date(document.uploadedAt).toLocaleDateString()}
 											</p>
-											<p className="text-xs text-slate-500">
-												{(document.size / (1024 * 1024)).toFixed(1)} MB
-											</p>
+											<p className="text-xs text-slate-500">{formatStorageSize(document.size)}</p>
 										</div>
 									</div>
 								))
